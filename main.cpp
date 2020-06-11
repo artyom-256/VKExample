@@ -1191,133 +1191,6 @@ int main()
 
 
 
-
-    auto beginSingleTimeCommands = [=]() {
-        VkCommandBufferAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandPool = commandPool;
-        allocInfo.commandBufferCount = 1;
-
-        VkCommandBuffer commandBuffer;
-        vkAllocateCommandBuffers(vkDevice, &allocInfo, &commandBuffer);
-
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-        vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
-        return commandBuffer;
-    };
-
-    auto endSingleTimeCommands = [=](VkCommandBuffer commandBuffer) {
-        vkEndCommandBuffer(commandBuffer);
-        VkSubmitInfo submitInfo{};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffer;
-
-        vkQueueSubmit(vkGraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-        vkQueueWaitIdle(vkGraphicsQueue);
-
-        vkFreeCommandBuffers(vkDevice, commandPool, 1, &commandBuffer);
-    };
-
-    auto transitionImageLayout = [=](VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
-        VkCommandBuffer commandBuffer = beginSingleTimeCommands();
-
-        VkImageMemoryBarrier barrier{};
-        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        barrier.oldLayout = oldLayout;
-        barrier.newLayout = newLayout;
-
-        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-        barrier.image = image;
-        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        barrier.subresourceRange.baseMipLevel = 0;
-        barrier.subresourceRange.levelCount = 1;
-        barrier.subresourceRange.baseArrayLayer = 0;
-        barrier.subresourceRange.layerCount = 1;
-
-        barrier.srcAccessMask = 0; // TODO
-        barrier.dstAccessMask = 0; // TODO
-
-        vkCmdPipelineBarrier(
-                    commandBuffer,
-                    0 /* TODO */, 0 /* TODO */,
-                    0,
-                    0, nullptr,
-                    0, nullptr,
-                    1, &barrier
-        );
-
-        endSingleTimeCommands(commandBuffer);
-    };
-
-    //transitionImageLayout(depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-
-
-
-
-
-
-
-
-
-
-    VkBuffer vertexBuffer;
-
-    VkBufferCreateInfo bufferInfo{};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = sizeof(vertices[0]) * vertices.size();
-    bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    if (vkCreateBuffer(vkDevice, &bufferInfo, nullptr, &vertexBuffer) != VK_SUCCESS) {
-        std::cerr << "Failed to create a buffer" << std::endl;
-        abort();
-    }
-
-
-
-
-    // TODO: replace with createBuffer().
-
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(vkDevice, vertexBuffer, &memRequirements);
-
-
-
-
-
-
-    VkMemoryAllocateInfo memoryAllocInfo{};
-    memoryAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    memoryAllocInfo.allocationSize = memRequirements.size;
-    memoryAllocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-
-    VkDeviceMemory vertexBufferMemory;
-
-    if (vkAllocateMemory(vkDevice, &memoryAllocInfo, nullptr, &vertexBufferMemory) != VK_SUCCESS) {
-        std::cerr << "Failed to allocate memory!" << std::endl;
-        abort();
-    }
-
-    vkBindBufferMemory(vkDevice, vertexBuffer, vertexBufferMemory, 0);
-
-
-    void* data;
-    vkMapMemory(vkDevice, vertexBufferMemory, 0, bufferInfo.size, 0, &data);
-    memcpy(data, vertices.data(), (size_t) bufferInfo.size);
-    vkUnmapMemory(vkDevice, vertexBufferMemory);
-
-
-
-
     auto createBuffer = [=](VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -1343,6 +1216,33 @@ int main()
 
         vkBindBufferMemory(vkDevice, buffer, bufferMemory, 0);
     };
+
+
+
+
+
+
+
+
+
+
+
+    VkBuffer vertexBuffer;
+    VkDeviceMemory vertexBufferMemory;
+    VkDeviceSize vertexBufferSize = sizeof(vertices[0]) * vertices.size();
+    createBuffer(
+                vertexBufferSize,
+                VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                vertexBuffer,
+                vertexBufferMemory);
+
+    void* data;
+    vkMapMemory(vkDevice, vertexBufferMemory, 0, vertexBufferSize, 0, &data);
+    memcpy(data, vertices.data(), (size_t) vertexBufferSize);
+    vkUnmapMemory(vkDevice, vertexBufferMemory);
+
+
 
 
 
