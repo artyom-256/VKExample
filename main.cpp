@@ -1,28 +1,65 @@
-// Include GLFW (window SDK) and add support of Vulkan.
+/****************************************************************************
+ *                                                                          *
+ *  Example of a simple 3D application using Vulkan API                     *
+ *  Copyright (C) 2020 Artem Hlumov <artyom.altair@gmail.com>               *
+ *                                                                          *
+ *  This program is free software: you can redistribute it and/or modify    *
+ *  it under the terms of the GNU General Public License as published by    *
+ *  the Free Software Foundation, either version 3 of the License, or       *
+ *  (at your option) any later version.                                     *
+ *                                                                          *
+ *  This program is distributed in the hope that it will be useful,         *
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of          *
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the           *
+ *  GNU General Public License for more details.                            *
+ *                                                                          *
+ *  You should have received a copy of the GNU General Public License       *
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.  *
+ *                                                                          *
+ ****************************************************************************
+ *                                                                          *
+ *       The application shows initialization of Vulkan, creation of        *
+ *     vertex buffers, shaders and uniform buffers in order to display      *
+ *        a simple example of 3D graphics - rotating colored cube.          *
+ *                                                                          *
+ *           The code is inspirited of the original tutorial:               *
+ *                     https://vulkan-tutorial.com                          *
+ *                                                                          *
+ ****************************************************************************/
+
+// Include GLFW (window SDK).
+// Switch on support of Vulkan
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-// Include GLM (linear algebra library) and apply patches for Vulkan.
+// Include GLM (linear algebra library).
+// Use radians instead of degrees to disable deprecated functions.
 #define GLM_FORCE_RADIANS
+// GLM has been initially designed for OpenGL, so we have to apply a patch
+// to make it work with Vulkan.
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/gtx/transform.hpp>
 
 #include <set>
-#include <iostream>
-#include <string>
-#include <vector>
-#include <cstring>
-#include <optional>
-#include <cstdint>
-#include <algorithm>
-#include <fstream>
 #include <array>
 #include <chrono>
+#include <string>
+#include <vector>
+#include <cstdint>
+#include <cstring>
+#include <fstream>
+#include <iostream>
+#include <optional>
+#include <algorithm>
 
 /**
  * Switch on validation levels.
+ * Validation levels provided by LunarG display error messages in case of
+ * incorrect usage of Vulkan functions.
+ * Comment this line to switching off DEBUG_MODE.
+ * It makes the application faster but silent.
  */
 #define DEBUG_MODE
 
@@ -38,10 +75,20 @@ constexpr int WINDOW_HEIGHT = 800;
  * Window title.
  */
 constexpr const char* WINDOW_TITLE = "VKExample";
+/**
+ * Maximal amount of frames processed at the same time.
+ */
+const int MAX_FRAMES_IN_FLIGHT = 5;
 
-const int MAX_FRAMES_IN_FLIGHT = 2;
-
-VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback
+/**
+ * Callback function that will be called each time a validation level produces a message.
+ * @param messageSeverity Bitmask specifying which severities of events cause a debug messenger callback.
+ * @param messageType Bitmask specifying which types of events cause a debug messenger callback.
+ * @param pCallbackData Structure specifying parameters returned to the callback.
+ * @param pUserData Arbitrary user data provided when the callback is created.
+ * @return True in case the Vulkan call should be aborted, false - otherwise.
+ */
+VKAPI_ATTR VkBool32 VKAPI_CALL messageCallback
     (
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
         VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -49,14 +96,13 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback
         void* pUserData
     )
 {
-    // Mark variables as not used.
+    // Mark variables as not used to suppress warnings.
     (void) messageSeverity;
     (void) messageType;
     (void) pUserData;
-    // Print a message.
+    // Print the message.
     std::cerr << "[MSG]:" << pCallbackData->pMessage << std::endl;
-    // Do only logging, VK_TRUE would mean that the current Vulkan call
-    // should be aborted with VK_ERROR_VALIDATION_FAILED_EXT error.
+    // Do only logging, do not abort the call.
     return VK_FALSE;
 }
 
@@ -78,10 +124,17 @@ std::vector< char > readFile(const char* fileName) {
     return buffer;
 }
 
+/**
+ * Main function.
+ * @return Return code of the application.
+ */
 int main()
 {
     // ==========================================================================
-    // STEP 1: Create a Window using GLFW
+    //                 STEP 1: Create a Window using GLFW
+    // ==========================================================================
+    // GLFW abstracts native calls to create the window and allows us to write
+    // a cross-platform application.
     // ==========================================================================
 
     // Initialize GLFW context.
@@ -91,73 +144,56 @@ int main()
     // Make the window not resizable.
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     // Create a window instance.
-    GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE, nullptr, nullptr);
+    GLFWwindow* glfwWindow = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE, nullptr, nullptr);
 
     // ==========================================================================
-    // STEP 2: Select Vulkan extensions
+    //                   STEP 2: Select Vulkan extensions
+    // ==========================================================================
+    // Vulkan has a list of extensions providing some functionality.
+    // We should explicitly select extensions we need.
+    // At least GLFW requires some graphical capabilities
+    // in order to draw an image.
     // ==========================================================================
 
-    // Take a minimal set of Vulkan extensions required for GLWF.
+    // Take a minimal set of Vulkan extensions required by GLWF.
     uint32_t glfwExtensionCount = 0;
     const char** glfwExtensions;
     glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-    // Print it.
-    std::cout << "==== VULKAN EXTENSIONS REQUIRED FOR GLFW ===" << std::endl;
-    for (uint32_t i = 0; i < glfwExtensionCount; i++) {
-        std::cout << glfwExtensions[i] << std::endl;
-    }
-
-    // Count available extensions.
+    // Fetch list of available Vulkan extensions.
     uint32_t vkNumAvailableExtensions = 0;
     vkEnumerateInstanceExtensionProperties(nullptr, &vkNumAvailableExtensions, nullptr);
-
-    // Fetch a list of available extensions.
     std::vector< VkExtensionProperties > vkAvailableExtensions(vkNumAvailableExtensions);
     vkEnumerateInstanceExtensionProperties(nullptr, &vkNumAvailableExtensions, vkAvailableExtensions.data());
 
-    // Print avaialble extensions.
-    std::cout << "==== AVAILABLE VULKAN EXTENSIONS ===" << std::endl;
-    for (auto extension : vkAvailableExtensions) {
-        std::cout << extension.extensionName << ", version: " << std::to_string(extension.specVersion) << std::endl;
-    }
-
     // Construct a list of extensions we should request.
     std::vector< const char* > extensionsList(glfwExtensions, glfwExtensions + glfwExtensionCount);
-    // Add more required extensions.
+
 #ifdef DEBUG_MODE
+
+    // Add an extension to print debug messages.
     extensionsList.push_back("VK_EXT_debug_utils");
 
     // ==========================================================================
-    // STEP 3: Create validation layers for debug
+    //              STEP 2.1: Select validation layers for debug
+    // ==========================================================================
+    // Validation layers is a mechanism to hook Vulkan API calls, validate
+    // them and notify the user if something goes wrong.
+    // Here we need to make sure that requested validation layers are available.
     // ==========================================================================
 
-    // Desired validation layers.
+    // Specify desired validation layers.
     const std::vector<const char*> desiredValidationLayers = {
         "VK_LAYER_KHRONOS_validation"
     };
 
-    // Print desired validation layers.
-    std::cout << "==== AVAILABLE VALIDATION LAYERS ===" << std::endl;
-    for (auto desiredLayer : desiredValidationLayers) {
-        std::cout << desiredLayer << std::endl;
-    }
-
-    // Count available validation layers.
+    // Fetch available validation layers.
     uint32_t vkLayerCount;
     vkEnumerateInstanceLayerProperties(&vkLayerCount, nullptr);
-
-    // Fetch available validation layers.
     std::vector< VkLayerProperties > vkAvailableLayers(vkLayerCount);
     vkEnumerateInstanceLayerProperties(&vkLayerCount, vkAvailableLayers.data());
 
-    // Print available validation layers.
-    std::cout << "==== AVAILABLE VALIDATION LAYERS ===" << std::endl;
-    for (auto availableLayer : vkAvailableLayers) {
-        std::cout << availableLayer.layerName << std::endl;
-    }
-
-    // Check if our validation layers are in the list.
+    // Check if desired validation layers are in the list.
     bool validationLayersAvailable = true;
     for (auto requestedLayer : desiredValidationLayers) {
         bool isLayerAvailable = false;
@@ -177,44 +213,70 @@ int main()
         abort();
     }
 
-#endif
+    // ==========================================================================
+    //                STEP 2.2: Create a debug message callback
+    // ==========================================================================
+    // Validation layers is a mechanism to hook Vulkan API calls, validate
+    // them and notify the user if something goes wrong.
+    // ==========================================================================
 
-    // See %VK_SDK_PATH%/Config/vk_layer_settings.txt
+    // Set up message logging.
+    // See %VK_SDK_PATH%/Config/vk_layer_settings.txt for detailed information.
     VkDebugUtilsMessengerCreateInfoEXT vkMessangerCreateInfo {};
     vkMessangerCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    // Which severities of events cause a debug messenger callback.
     vkMessangerCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
                                             VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
                                             VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    // Which types of events cause a debug messenger callback.
     vkMessangerCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
                                         VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
                                         VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-    vkMessangerCreateInfo.pfnUserCallback = debugCallback;
+    // Pointer to a callback function.
+    vkMessangerCreateInfo.pfnUserCallback = messageCallback;
+    // Here we can pass some arbitrary date to the callback function.
     vkMessangerCreateInfo.pUserData = nullptr;
 
+#endif
+
     // ==========================================================================
-    // STEP 4: Create a Vulkan instance
+    // STEP 3: Create a Vulkan instance
+    // ==========================================================================
+    // The Vulkan instance is a starting point of using Vulkan API.
+    // Here we specify API version and which extensions to use.
     // ==========================================================================
 
     // Specify application info and required Vulkan version.
     VkApplicationInfo vkAppInfo {};
+    // Information about your application.
     vkAppInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     vkAppInfo.pApplicationName = WINDOW_TITLE;
     vkAppInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+    // Information about your 3D engine (if applicable).
     vkAppInfo.pEngineName = "No Engine";
     vkAppInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    vkAppInfo.apiVersion = VK_API_VERSION_1_2;
+    // Use v1.0 that is likely supported by the most of drivers.
+    vkAppInfo.apiVersion = VK_API_VERSION_1_0;
 
-    // Fill in an instance create structure including application info and desirable extensions.
+    // Fill in an instance create structure.
     VkInstanceCreateInfo vkCreateInfo {};
     vkCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     vkCreateInfo.pApplicationInfo = &vkAppInfo;
+    // Specify which extensions we need.
     vkCreateInfo.enabledExtensionCount = extensionsList.size();
     vkCreateInfo.ppEnabledExtensionNames = extensionsList.data();
 #ifdef DEBUG_MODE
+    // Switch on all requested layers for debug mode.
     vkCreateInfo.enabledLayerCount = static_cast< uint32_t >(desiredValidationLayers.size());
     vkCreateInfo.ppEnabledLayerNames = desiredValidationLayers.data();
+    // Debug message callbacks are attached after instance creation and should be destroyed
+    // before instance destruction. Therefore they do not catch errors in these two calls.
+    // To avoid this we can pass our debug messager duing instance creation.
+    // This will apply it for vkCreateInstance() and vkDestroyInstance() calls only,
+    // so in any case debug messages should be switched on after the instance is created.
     vkCreateInfo.pNext = reinterpret_cast< VkDebugUtilsMessengerCreateInfoEXT* >(&vkMessangerCreateInfo);
 #else
+    // Do not use layers in release mode.
     vkCreateInfo.enabledLayerCount = 0;
 #endif
 
@@ -226,20 +288,32 @@ int main()
     }
 
     // ==========================================================================
-    // STEP 5: Create a window surface
+    // STEP 4: Create a window surface
+    // ==========================================================================
+    // Surface is an abstraction that works with the window system of your OS.
+    // Athough it is possible to use platform-dependent calls to create
+    // a surface, GLFW provides us a way to do this platform-agnostic.
     // ==========================================================================
 
     VkSurfaceKHR vkSurface;
-    if (glfwCreateWindowSurface(vkInstance, window, nullptr, &vkSurface) != VK_SUCCESS) {
+    if (glfwCreateWindowSurface(vkInstance, glfwWindow, nullptr, &vkSurface) != VK_SUCCESS) {
         std::cerr << "Failed to create a surface!" << std::endl;
         abort();
     }
 
+#ifdef DEBUG_MODE
+
     // ==========================================================================
     // STEP 5: Attach message handler
     // ==========================================================================
+    // Attach a message handler to the Vulkan context in order to see
+    // debug messages and warnings.
+    // ==========================================================================
 
-    // Get pointer to an extension function vkCreateDebugUtilsMessengerEXT.
+    // Since vkCreateDebugUtilsMessengerEXT is a function of an extension,
+    // it is not explicitly declared in Vulkan header, because if we do not load
+    // validation layers, it does not exist.
+    // First of all we have to obtain a pointer to the function.
     auto vkCreateDebugUtilsMessengerEXT = reinterpret_cast< PFN_vkCreateDebugUtilsMessengerEXT >(vkGetInstanceProcAddr(vkInstance, "vkCreateDebugUtilsMessengerEXT"));
     if (vkCreateDebugUtilsMessengerEXT == nullptr) {
         std::cerr << "Function vkCreateDebugUtilsMessengerEXT not found!";
@@ -250,99 +324,114 @@ int main()
     VkDebugUtilsMessengerEXT vkDebugMessenger;
     vkCreateDebugUtilsMessengerEXT(vkInstance, &vkMessangerCreateInfo, nullptr, &vkDebugMessenger);
 
+#endif
+
     // ==========================================================================
-    // STEP 5: Pick a physical device
+    // STEP 6: Pick a physical device
+    // ==========================================================================
+    // Physical devices correspond to graphicals cards available in the system.
+    // Before we continue, we should make sure the graphical card is suitable
+    // for our needs and in case there is more than one card
+    // in the system - select one of them.
     // ==========================================================================
 
+    // Here we will store a selected physical device.
     VkPhysicalDevice vkPhysicalDevice = VK_NULL_HANDLE;
+    // Here we store information about queues supported by the selected physical device.
+    // For our simple application device should support two queues:
+    struct QueueFamilyIndices
+    {
+        // Graphics queue processes rendering requests and stores result into Vulkan images.
+        std::optional< uint32_t > graphicsFamily;
+        // Present queue tranfers images to the surface.
+        std::optional< uint32_t > presentFamily;
+    };
+    QueueFamilyIndices queueFamilyIndices;
 
+    // Desired extensions that should be supported by the graphical card.
     const std::vector< const char* > desiredDeviceExtensions = {
+        // Swap chain extension is needed for drawing.
+        // Any graphical card that aims to draw into a framebuffer
+        // should support this extension.
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
 
-    // Get number of physical devices.
+    // Get a list of available physical devices.
     uint32_t vkDeviceCount = 0;
     vkEnumeratePhysicalDevices(vkInstance, &vkDeviceCount, nullptr);
     if (vkDeviceCount == 0) {
         std::cerr << "No physical devices!" << std::endl;
         abort();
     }
-
-    // Get physical devices.
     std::vector<VkPhysicalDevice> vkDevices(vkDeviceCount);
     vkEnumeratePhysicalDevices(vkInstance, &vkDeviceCount, vkDevices.data());
 
-    // Print devices and select the first suitable one.
-    std::cout << "==== AVAILABLE PHYSICAL DEVICES ===" << std::endl;
+    // Go through the list of physical device and select the first suitable one.
+    // In advanced applications you may introduce a rating to choose
+    // the best video card or let the user select one manually.
     for (auto device : vkDevices) {
-        // Get device properties.
+        // Get properties of the physical device.
         VkPhysicalDeviceProperties deviceProperties;
         vkGetPhysicalDeviceProperties(device, &deviceProperties);
 
-        // Get device features.
+        // Get features of the physical device.
         VkPhysicalDeviceFeatures deviceFeatures;
         vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
 
-        // Print device
-        std::cout << deviceProperties.deviceName << std::endl;
-
-        // Get available device extensions.
+        // Get extensions available for the physical device.
         uint32_t extensionCount;
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
         std::vector< VkExtensionProperties > availableExtensions(extensionCount);
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
-        std::cout << "    ---- AVAILABLE DEVICE EXTENSIONS ---" << std::endl;
-        for (const auto& extension : availableExtensions) {
-            std::cout << "    " << extension.extensionName << ", version: " << std::to_string(extension.specVersion) << std::endl;
-        }
 
+        // Check if all desired extensions are present.
         std::set< std::string > requiredExtensions(desiredDeviceExtensions.begin(), desiredDeviceExtensions.end());
-
         for (const auto& extension : availableExtensions) {
             requiredExtensions.erase(extension.extensionName);
         }
+        bool allExtensionsAvailable = requiredExtensions.empty();
 
-        // Selece the first suitable device.
+        // Get list of available queue families.
+        uint32_t vkQueueFamilyCount = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &vkQueueFamilyCount, nullptr);
+        std::vector< VkQueueFamilyProperties > vkQueueFamilies(vkQueueFamilyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &vkQueueFamilyCount, vkQueueFamilies.data());
+
+        // Fill in QueueFamilyIndices structure to check that all required queue families are present.
+        QueueFamilyIndices currentDeviceQueueFamilyIndices;
+        for (uint32_t i = 0; i < vkQueueFamilyCount; i++) {
+            // Take a queue family.
+            const auto& queueFamily = vkQueueFamilies[i];
+
+            // Check if this is a graphics family.
+            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+                currentDeviceQueueFamilyIndices.graphicsFamily = i;
+            }
+
+            // Check if it supports presentation.
+            // Note that graphicsFamily and presentFamily may refer to the same queue family
+            // for some video cards and we should be ready to this.
+            VkBool32 presentSupport = false;
+            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, vkSurface, &presentSupport);
+            if (presentSupport) {
+                currentDeviceQueueFamilyIndices.presentFamily = i;
+            }
+        }
+
+        // Select the first device having all needed extensions and queues.
         if (vkPhysicalDevice == VK_NULL_HANDLE &&
-                requiredExtensions.empty()) {
+                allExtensionsAvailable &&
+                currentDeviceQueueFamilyIndices.graphicsFamily.has_value() &&
+                currentDeviceQueueFamilyIndices.presentFamily.has_value()) {
             vkPhysicalDevice = device;
-            std::cout << "->> pick";
-        } else {
-            std::cout << "->> skip";
+            queueFamilyIndices = currentDeviceQueueFamilyIndices;
         }
-        std::cout << std::endl;
     }
+
+    // Check if we have found any suitable device.
     if (vkPhysicalDevice == VK_NULL_HANDLE) {
-        std::cerr << "No suitable devices available!" << std::endl;
+        std::cerr << "No suitable physical devices available!" << std::endl;
         abort();
-    }
-
-    // ==========================================================================
-    // STEP 5: Select queue families
-    // ==========================================================================
-
-    // TODO: do this in a device lookup function.
-    struct QueueFamilyIndices {
-        std::optional< uint32_t > graphicsFamily;
-        std::optional< uint32_t > presentFamily;
-    };
-    QueueFamilyIndices queueFamilyIndices;
-
-    uint32_t vkQueueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(vkPhysicalDevice, &vkQueueFamilyCount, nullptr);
-    std::vector< VkQueueFamilyProperties > vkQueueFamilies(vkQueueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(vkPhysicalDevice, &vkQueueFamilyCount, vkQueueFamilies.data());
-
-    for (uint32_t i = 0; i < vkQueueFamilyCount; i++) {
-        const auto& queueFamily = vkQueueFamilies[i];
-        if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-            queueFamilyIndices.graphicsFamily = i;
-        }
-        VkBool32 presentSupport = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(vkPhysicalDevice, i, vkSurface, &presentSupport);
-        if (presentSupport) {
-            queueFamilyIndices.presentFamily = i;
-        }
     }
 
     // ==========================================================================
@@ -1502,7 +1591,7 @@ int main()
     size_t currentFrame = 0;
 
     // Main loop of GLFW.
-    while(!glfwWindowShouldClose(window)) {
+    while(!glfwWindowShouldClose(glfwWindow)) {
         glfwPollEvents();
 
         vkWaitForFences(vkDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
@@ -1627,7 +1716,7 @@ int main()
     vkDestroyInstance(vkInstance, nullptr);
 
     // Destroy window.
-    glfwDestroyWindow(window);
+    glfwDestroyWindow(glfwWindow);
     // Deinitialize GLFW library.
     glfwTerminate();
 
