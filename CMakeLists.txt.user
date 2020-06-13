@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 4.12.2, 2020-06-12T21:03:42. -->
+<!-- Written by QtCreator 4.12.2, 2020-06-13T21:21:20. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -86,7 +86,12 @@
      <value type="QString">CMAKE_CXX_COMPILER:STRING=%{Compiler:Executable:Cxx}</value>
      <value type="QString">CMAKE_C_COMPILER:STRING=%{Compiler:Executable:C}</value>
      <value type="QString">CMAKE_PREFIX_PATH:STRING=%{Qt:QT_INSTALL_PREFIX}</value>
+     <value type="QString">GLFW_INC:STRING=C:/Lib/glfw-3.3.2.bin.WIN64/include</value>
+     <value type="QString">GLFW_LIB:STRING=C:/Lib/glfw-3.3.2.bin.WIN64/lib</value>
+     <value type="QString">GLM_INC:STRING=C:/Lib/glm-0.9.9.8/include</value>
      <value type="QString">QT_QMAKE_EXECUTABLE:STRING=%{Qt:qmakeExecutable}</value>
+     <value type="QString">VK_SDK_INC:STRING=C:/Lib/VulkanSDK_1.2.141.0/Include</value>
+     <value type="QString">VK_SDK_LIB:STRING=C:/Lib/VulkanSDK_1.2.141.0/Lib</value>
     </valuelist>
     <value type="int" key="EnableQmlDebugging">2</value>
     <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory">D:\Programming\Build\build-VKExample-Desktop_Qt_5_15_0_MinGW_64_bit-Debug</value>
