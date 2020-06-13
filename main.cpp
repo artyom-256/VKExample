@@ -997,7 +997,8 @@ int main()
     // Create an image for resolve attachment.
     VkImage colorImage;
     if (vkCreateImage(vkDevice, &vkColorImageInfo, nullptr, &colorImage) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create image!");
+        std::cerr << "Failed to create an image!" << std::endl;
+        abort();
     }
 
     // Get memory requirements.
