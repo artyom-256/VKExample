@@ -157,7 +157,7 @@ int main()
     extensionsList.push_back("VK_EXT_debug_utils");
 
     // ==========================================================================
-    //              STEP 2.1: Select validation layers for debug
+    //              STEP 3: Select validation layers for debug
     // ==========================================================================
     // Validation layers is a mechanism to hook Vulkan API calls, validate
     // them and notify the user if something goes wrong.
@@ -196,7 +196,7 @@ int main()
     }
 
     // ==========================================================================
-    //                STEP 2.2: Create a debug message callback
+    //                STEP 4: Create a debug message callback
     // ==========================================================================
     // Validation layers is a mechanism to hook Vulkan API calls, validate
     // them and notify the user if something goes wrong.
@@ -222,7 +222,7 @@ int main()
 #endif
 
     // ==========================================================================
-    // STEP 3: Create a Vulkan instance
+    //                    STEP 5: Create a Vulkan instance
     // ==========================================================================
     // The Vulkan instance is a starting point of using Vulkan API.
     // Here we specify API version and which extensions to use.
@@ -270,7 +270,7 @@ int main()
     }
 
     // ==========================================================================
-    // STEP 4: Create a window surface
+    //                    STEP 6: Create a window surface
     // ==========================================================================
     // Surface is an abstraction that works with the window system of your OS.
     // Athough it is possible to use platform-dependent calls to create
@@ -286,7 +286,7 @@ int main()
 #ifdef DEBUG_MODE
 
     // ==========================================================================
-    // STEP 5: Attach message handler
+    //                    STEP 7: Attach a message handler
     // ==========================================================================
     // Attach a message handler to the Vulkan context in order to see
     // debug messages and warnings.
@@ -309,7 +309,7 @@ int main()
 #endif
 
     // ==========================================================================
-    // STEP 6: Pick a physical device
+    //                      STEP 8: Pick a physical device
     // ==========================================================================
     // Physical devices correspond to graphical cards available in the system.
     // Before we continue, we should make sure the graphical card is suitable
@@ -321,6 +321,9 @@ int main()
     // for the selected physical device and use them in further calls.
     // ==========================================================================
 
+    // --------------------------------------------------------------------------
+    //                    Information about selected device
+    // --------------------------------------------------------------------------
     // Here we will store a selected physical device.
     VkPhysicalDevice vkPhysicalDevice = VK_NULL_HANDLE;
     // Here we store information about queues supported by the selected physical device.
@@ -342,6 +345,7 @@ int main()
     SwapChainSupportDetails swapChainSupportDetails;
     // Here we keep a selected format for z-buffer.
     VkFormat depthFormat = VK_FORMAT_UNDEFINED;
+    // --------------------------------------------------------------------------
 
     // Desired extensions that should be supported by the graphical card.
     const std::vector< const char* > desiredDeviceExtensions = {
@@ -379,12 +383,20 @@ int main()
         std::vector< VkExtensionProperties > availableExtensions(extensionCount);
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
 
-        // Check if all desired extensions are present.
+        // ---------------------------------------------------
+        // TEST 1: Check if all desired extensions are present
+        // ---------------------------------------------------
+
+        // Get list of extensions and compare it to desired one.
         std::set< std::string > requiredExtensions(desiredDeviceExtensions.begin(), desiredDeviceExtensions.end());
         for (const auto& extension : availableExtensions) {
             requiredExtensions.erase(extension.extensionName);
         }
         bool allExtensionsAvailable = requiredExtensions.empty();
+
+        // ----------------------------------------------------------
+        // TEST 2: Check if all required queue families are supported
+        // ----------------------------------------------------------
 
         // Get list of available queue families.
         uint32_t vkQueueFamilyCount = 0;
@@ -415,6 +427,10 @@ int main()
         bool queuesOk = currentDeviceQueueFamilyIndices.graphicsFamily.has_value() &&
                         currentDeviceQueueFamilyIndices.presentFamily.has_value();
 
+        // ---------------------------------------------------------
+        // TEST 3: Check if the swap chain supports required formats
+        // ---------------------------------------------------------
+
         // Fill swap chain information into a SwapChainSupportDetails structure.
         SwapChainSupportDetails currenDeviceSwapChainDetails;
         // We should do this only in case the device supports swap buffer.
@@ -441,7 +457,11 @@ int main()
         bool swapChainOk = !currenDeviceSwapChainDetails.formats.empty() &&
                            !currenDeviceSwapChainDetails.presentModes.empty();
 
-        // Select a format of z-buffer.
+        // ----------------------------------------------
+        // TEST 4: Check if the depth buffer is avaialble
+        // ----------------------------------------------
+
+        // Select a format of depth buffer.
         // We have a list of formats we need to test and pick one.
         std::vector< VkFormat > depthFormatCandidates = {
             VK_FORMAT_D32_SFLOAT,
@@ -475,7 +495,7 @@ int main()
     }
 
     // ==========================================================================
-    // STEP 5: Create a logical device
+    //                   STEP 9: Create a logical device
     // ==========================================================================
     // Logical devices are instances of the physical device created for
     // the particular application. We should create one in order to use it.
@@ -530,6 +550,7 @@ int main()
     // Switch on all requested layers for debug mode.
     createInfo.enabledLayerCount = static_cast< uint32_t >(desiredValidationLayers.size());
     createInfo.ppEnabledLayerNames = desiredValidationLayers.data();
+
 #else
 
     createInfo.enabledLayerCount = 0;
@@ -543,7 +564,7 @@ int main()
     }
 
     // ==========================================================================
-    // STEP 5: Pick a graphics queue
+    // STEP 10: Pick graphics queues
     // ==========================================================================
     // We have checked that the device supports all required queues, but now
     // we need to pick their handles explicitly.
@@ -1260,7 +1281,8 @@ int main()
     // Allocate memory for the depth image.
     VkDeviceMemory depthImageMemory;
     if (vkAllocateMemory(vkDevice, &memoryAllocInfo, nullptr, &depthImageMemory) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate image memory!");
+        std::cerr << "Cannot allocate image memory!" << std::endl;
+        abort();
     }
 
     // Bind the image to the allocated memory.
@@ -1287,7 +1309,8 @@ int main()
     // Create an image view.
     VkImageView depthImageView;
     if (vkCreateImageView(vkDevice, &viewInfo, nullptr, &depthImageView) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create texture image view!");
+        std::cerr << "Cannot create texture image view!" << std::endl;
+        abort();
     }
 
     // ==========================================================================
@@ -1414,7 +1437,8 @@ int main()
 
         // Create a buffer.
         if (vkCreateBuffer(vkDevice, &bufferInfo, nullptr, &uniformBuffers[i]) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create buffer!");
+            std::cerr << "Cannot create a buffer!" << std::endl;
+            abort();
         }
 
         // Retrieve memory requirements for the vertex buffer.
@@ -1429,7 +1453,8 @@ int main()
 
         // Allocate memory for the vertex buffer.
         if (vkAllocateMemory(vkDevice, &allocInfo, nullptr, &uniformBuffersMemory[i]) != VK_SUCCESS) {
-            throw std::runtime_error("failed to allocate buffer memory!");
+            std::cerr << "Cannot allocate buffer memory!" << std::endl;
+            abort();
         }
 
         // Bind the buffer to the allocated memory.
@@ -1477,8 +1502,8 @@ int main()
     std::vector< VkDescriptorSet > descriptorSets;
     descriptorSets.resize(vkSwapChainImages.size());
     if (vkAllocateDescriptorSets(vkDevice, &descriptSetAllocInfo, descriptorSets.data()) != VK_SUCCESS) {
-        // TODO: replace exceptions
-        throw std::runtime_error("failed to allocate descriptor sets!");
+        std::cerr << "Cannot allocate descriptor set!" << std::endl;
+        abort();
     }
 
     // Write descriptors for each uniform buffer.
