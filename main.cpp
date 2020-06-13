@@ -356,7 +356,7 @@ int main()
     };
     SwapChainSupportDetails swapChainSupportDetails;
     // Here we keep a selected format for z-buffer.
-    VkFormat depthFormat = VK_FORMAT_UNDEFINED;
+    VkFormat vkDepthFormat = VK_FORMAT_UNDEFINED;
     // --------------------------------------------------------------------------
 
     // Desired extensions that should be supported by the graphical card.
@@ -382,18 +382,18 @@ int main()
     // the best video card or let the user select one manually.
     for (auto device : vkDevices) {
         // Get properties of the physical device.
-        VkPhysicalDeviceProperties deviceProperties;
-        vkGetPhysicalDeviceProperties(device, &deviceProperties);
+        VkPhysicalDeviceProperties vkDeviceProperties;
+        vkGetPhysicalDeviceProperties(device, &vkDeviceProperties);
 
         // Get features of the physical device.
-        VkPhysicalDeviceFeatures deviceFeatures;
-        vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+        VkPhysicalDeviceFeatures vkDeviceFeatures;
+        vkGetPhysicalDeviceFeatures(device, &vkDeviceFeatures);
 
         // Get extensions available for the physical device.
-        uint32_t extensionCount;
-        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
-        std::vector< VkExtensionProperties > availableExtensions(extensionCount);
-        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+        uint32_t vkExtensionCount;
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &vkExtensionCount, nullptr);
+        std::vector< VkExtensionProperties > vkAvailableExtensions(vkExtensionCount);
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &vkExtensionCount, vkAvailableExtensions.data());
 
         // ---------------------------------------------------
         // TEST 1: Check if all desired extensions are present
@@ -401,7 +401,7 @@ int main()
 
         // Get list of extensions and compare it to desired one.
         std::set< std::string > requiredExtensions(desiredDeviceExtensions.begin(), desiredDeviceExtensions.end());
-        for (const auto& extension : availableExtensions) {
+        for (const auto& extension : vkAvailableExtensions) {
             requiredExtensions.erase(extension.extensionName);
         }
         bool allExtensionsAvailable = requiredExtensions.empty();
@@ -430,9 +430,9 @@ int main()
             // Check if it supports presentation.
             // Note that graphicsFamily and presentFamily may refer to the same queue family
             // for some video cards and we should be ready to this.
-            VkBool32 presentSupport = false;
-            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, vkSurface, &presentSupport);
-            if (presentSupport) {
+            VkBool32 vkPresentSupport = false;
+            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, vkSurface, &vkPresentSupport);
+            if (vkPresentSupport) {
                 currentDeviceQueueFamilyIndices.presentFamily = i;
             }
         }
@@ -452,18 +452,18 @@ int main()
             // Get surface capabilities.
             vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, vkSurface, &currenDeviceSwapChainDetails.capabilities);
             // Get supported formats.
-            uint32_t physicalDeviceFormatCount;
-            vkGetPhysicalDeviceSurfaceFormatsKHR(device, vkSurface, &physicalDeviceFormatCount, nullptr);
-            if (physicalDeviceFormatCount != 0) {
-                currenDeviceSwapChainDetails.formats.resize(physicalDeviceFormatCount);
-                vkGetPhysicalDeviceSurfaceFormatsKHR(device, vkSurface, &physicalDeviceFormatCount, currenDeviceSwapChainDetails.formats.data());
+            uint32_t vkPhysicalDeviceFormatCount;
+            vkGetPhysicalDeviceSurfaceFormatsKHR(device, vkSurface, &vkPhysicalDeviceFormatCount, nullptr);
+            if (vkPhysicalDeviceFormatCount != 0) {
+                currenDeviceSwapChainDetails.formats.resize(vkPhysicalDeviceFormatCount);
+                vkGetPhysicalDeviceSurfaceFormatsKHR(device, vkSurface, &vkPhysicalDeviceFormatCount, currenDeviceSwapChainDetails.formats.data());
             }
             // Get supported present modes.
-            uint32_t physicalDevicePresentModeCount;
-            vkGetPhysicalDeviceSurfacePresentModesKHR(device, vkSurface, &physicalDevicePresentModeCount, nullptr);
-            if (physicalDevicePresentModeCount != 0) {
-                currenDeviceSwapChainDetails.presentModes.resize(physicalDevicePresentModeCount);
-                vkGetPhysicalDeviceSurfacePresentModesKHR(device, vkSurface, &physicalDevicePresentModeCount, currenDeviceSwapChainDetails.presentModes.data());
+            uint32_t vkPhysicalDevicePresentModeCount;
+            vkGetPhysicalDeviceSurfacePresentModesKHR(device, vkSurface, &vkPhysicalDevicePresentModeCount, nullptr);
+            if (vkPhysicalDevicePresentModeCount != 0) {
+                currenDeviceSwapChainDetails.presentModes.resize(vkPhysicalDevicePresentModeCount);
+                vkGetPhysicalDeviceSurfacePresentModesKHR(device, vkSurface, &vkPhysicalDevicePresentModeCount, currenDeviceSwapChainDetails.presentModes.data());
             }
         }
         bool swapChainOk = !currenDeviceSwapChainDetails.formats.empty() &&
@@ -482,9 +482,9 @@ int main()
         };
         VkFormat currentDepthFormat = VK_FORMAT_UNDEFINED;
         for (VkFormat format : depthFormatCandidates) {
-            VkFormatProperties props;
-            vkGetPhysicalDeviceFormatProperties(device, format, &props);
-            if (props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) {
+            VkFormatProperties vkProps;
+            vkGetPhysicalDeviceFormatProperties(device, format, &vkProps);
+            if (vkProps.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) {
                 currentDepthFormat = format;
                 break;
             }
@@ -496,7 +496,7 @@ int main()
             vkPhysicalDevice = device;
             queueFamilyIndices = currentDeviceQueueFamilyIndices;
             swapChainSupportDetails = currenDeviceSwapChainDetails;
-            depthFormat = currentDepthFormat;
+            vkDepthFormat = currentDepthFormat;
             break;
         }
     }
@@ -549,20 +549,20 @@ int main()
     VkPhysicalDeviceFeatures vkDeviceFeatures {};
 
     // Logical device creation info.
-    VkDeviceCreateInfo createInfo {};
-    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    createInfo.queueCreateInfoCount = queueCreateInfos.size();
-    createInfo.pQueueCreateInfos = queueCreateInfos.data();
-    createInfo.pEnabledFeatures = &vkDeviceFeatures;
+    VkDeviceCreateInfo vkDeviceCreateInfo {};
+    vkDeviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    vkDeviceCreateInfo.queueCreateInfoCount = queueCreateInfos.size();
+    vkDeviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
+    vkDeviceCreateInfo.pEnabledFeatures = &vkDeviceFeatures;
     // Specify which extensions we want to enable.
-    createInfo.enabledExtensionCount = static_cast< uint32_t >(desiredDeviceExtensions.size());
-    createInfo.ppEnabledExtensionNames = desiredDeviceExtensions.data();
+    vkDeviceCreateInfo.enabledExtensionCount = static_cast< uint32_t >(desiredDeviceExtensions.size());
+    vkDeviceCreateInfo.ppEnabledExtensionNames = desiredDeviceExtensions.data();
 
 #ifdef DEBUG_MODE
 
     // Switch on all requested layers for debug mode.
-    createInfo.enabledLayerCount = static_cast< uint32_t >(desiredValidationLayers.size());
-    createInfo.ppEnabledLayerNames = desiredValidationLayers.data();
+    vkDeviceCreateInfo.enabledLayerCount = static_cast< uint32_t >(desiredValidationLayers.size());
+    vkDeviceCreateInfo.ppEnabledLayerNames = desiredValidationLayers.data();
 
 #else
 
@@ -571,7 +571,7 @@ int main()
 #endif
 
     // Create a logical device.
-    if (vkCreateDevice(vkPhysicalDevice, &createInfo, nullptr, &vkDevice) != VK_SUCCESS) {
+    if (vkCreateDevice(vkPhysicalDevice, &vkDeviceCreateInfo, nullptr, &vkDevice) != VK_SUCCESS) {
         std::cerr << "Failed to create a logical device!" << std::endl;
         abort();
     }
@@ -705,21 +705,21 @@ int main()
     // using in shaders. This is needed if we want to use uniforms in shaders.
     // ==========================================================================
 
-    VkDescriptorSetLayoutBinding uboLayoutBinding{};
-    uboLayoutBinding.binding = 0;
-    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uboLayoutBinding.descriptorCount = 1;
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    uboLayoutBinding.pImmutableSamplers = nullptr;
+    VkDescriptorSetLayoutBinding vkUboLayoutBinding{};
+    vkUboLayoutBinding.binding = 0;
+    vkUboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    vkUboLayoutBinding.descriptorCount = 1;
+    vkUboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    vkUboLayoutBinding.pImmutableSamplers = nullptr;
 
-    VkDescriptorSetLayout descriptorSetLayout;
+    VkDescriptorSetLayout vkDescriptorSetLayout;
 
-    VkDescriptorSetLayoutCreateInfo layoutInfo{};
-    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = 1;
-    layoutInfo.pBindings = &uboLayoutBinding;
+    VkDescriptorSetLayoutCreateInfo vkLayoutInfo{};
+    vkLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    vkLayoutInfo.bindingCount = 1;
+    vkLayoutInfo.pBindings = &vkUboLayoutBinding;
 
-    if (vkCreateDescriptorSetLayout(vkDevice, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+    if (vkCreateDescriptorSetLayout(vkDevice, &vkLayoutInfo, nullptr, &vkDescriptorSetLayout) != VK_SUCCESS) {
         std::cerr << "Failed to create a descriptor set layout" << std::endl;
         abort();
     }
@@ -799,25 +799,25 @@ int main()
     // --------------------------------------------------------------------------
 
     // Create a pipeline stage for a vertex shader.
-    VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
-    vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertShaderStageInfo.module = vkVertexShaderModule;
+    VkPipelineShaderStageCreateInfo vkVertShaderStageInfo{};
+    vkVertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    vkVertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+    vkVertShaderStageInfo.module = vkVertexShaderModule;
     // main function name
-    vertShaderStageInfo.pName = "main";
+    vkVertShaderStageInfo.pName = "main";
 
     // Create a pipeline stage for a fragment shader.
-    VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-    fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragShaderStageInfo.module = vkFragmentShaderModule;
+    VkPipelineShaderStageCreateInfo vkFragShaderStageInfo{};
+    vkFragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    vkFragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    vkFragShaderStageInfo.module = vkFragmentShaderModule;
     // main function name
-    fragShaderStageInfo.pName = "main";
+    vkFragShaderStageInfo.pName = "main";
 
     // Put both shader modules into an array.
     std::array< VkPipelineShaderStageCreateInfo, 2 > shaderStages {
-        vertShaderStageInfo,
-        fragShaderStageInfo
+        vkVertShaderStageInfo,
+        vkFragShaderStageInfo
     };
 
     // ==========================================================================
@@ -838,33 +838,33 @@ int main()
 
     // Binding descriptor specifies how our array is splited into vertices.
     // In particular, we say that each sizeof(Vertex) bytes correspond to one vertex.
-    VkVertexInputBindingDescription bindingDescription{};
-    bindingDescription.binding = 0;
-    bindingDescription.stride = sizeof(Vertex);
-    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    VkVertexInputBindingDescription vkBindingDescription{};
+    vkBindingDescription.binding = 0;
+    vkBindingDescription.stride = sizeof(Vertex);
+    vkBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
     // Attribute description specifies how one vertext is split into separate variables.
     // In our case a vertext is a composition of two vec3 values: coordinates and color.
     // Property location corresponds to a location value in shader code.
-    std::array< VkVertexInputAttributeDescription, 2 > attributeDescriptions{};
+    std::array< VkVertexInputAttributeDescription, 2 > vkAttributeDescriptions{};
     // Description of the first attribute (coordinates).
-    attributeDescriptions[0].binding = 0;
-    attributeDescriptions[0].location = 0;
-    attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[0].offset = offsetof(Vertex, pos);
+    vkAttributeDescriptions[0].binding = 0;
+    vkAttributeDescriptions[0].location = 0;
+    vkAttributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+    vkAttributeDescriptions[0].offset = offsetof(Vertex, pos);
     // Description of the second attribute (color).
-    attributeDescriptions[1].binding = 0;
-    attributeDescriptions[1].location = 1;
-    attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[1].offset = offsetof(Vertex, color);
+    vkAttributeDescriptions[1].binding = 0;
+    vkAttributeDescriptions[1].location = 1;
+    vkAttributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+    vkAttributeDescriptions[1].offset = offsetof(Vertex, color);
 
     // Create a vertex input state for pipeline creation.
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount = 1;
-    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-    vertexInputInfo.vertexAttributeDescriptionCount = static_cast< uint32_t >(attributeDescriptions.size());
-    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+    VkPipelineVertexInputStateCreateInfo vkVertexInputInfo{};
+    vkVertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vkVertexInputInfo.vertexBindingDescriptionCount = 1;
+    vkVertexInputInfo.pVertexBindingDescriptions = &vkBindingDescription;
+    vkVertexInputInfo.vertexAttributeDescriptionCount = static_cast< uint32_t >(vkAttributeDescriptions.size());
+    vkVertexInputInfo.pVertexAttributeDescriptions = vkAttributeDescriptions.data();
 
     // ==========================================================================
     //               STEP 15: Create a pipeline assembly state
@@ -873,10 +873,10 @@ int main()
     // In our case the input is a list of triangles.
     // ==========================================================================
 
-    VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-    inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    inputAssembly.primitiveRestartEnable = VK_FALSE;
+    VkPipelineInputAssemblyStateCreateInfo vkInputAssembly{};
+    vkInputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    vkInputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    vkInputAssembly.primitiveRestartEnable = VK_FALSE;
 
     // ==========================================================================
     //                 STEP 16: Create a viewport and scissors
@@ -888,26 +888,26 @@ int main()
     // ==========================================================================
 
     // Create a viewport.
-    VkViewport viewport{};
-    viewport.x = 0.0f;
-    viewport.y = 0.0f;
-    viewport.width = static_cast< float >(vkSelectedExtent.width);
-    viewport.height = static_cast< float >(vkSelectedExtent.height);
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
+    VkViewport vkViewport{};
+    vkViewport.x = 0.0f;
+    vkViewport.y = 0.0f;
+    vkViewport.width = static_cast< float >(vkSelectedExtent.width);
+    vkViewport.height = static_cast< float >(vkSelectedExtent.height);
+    vkViewport.minDepth = 0.0f;
+    vkViewport.maxDepth = 1.0f;
 
     // Create scissors.
-    VkRect2D scissor{};
-    scissor.offset = {0, 0};
-    scissor.extent = vkSelectedExtent;
+    VkRect2D vkScissor{};
+    vkScissor.offset = {0, 0};
+    vkScissor.extent = vkSelectedExtent;
 
     // Make a structure for framebuffer creation.
-    VkPipelineViewportStateCreateInfo viewportState{};
-    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    viewportState.viewportCount = 1;
-    viewportState.pViewports = &viewport;
-    viewportState.scissorCount = 1;
-    viewportState.pScissors = &scissor;
+    VkPipelineViewportStateCreateInfo vkViewportState{};
+    vkViewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    vkViewportState.viewportCount = 1;
+    vkViewportState.pViewports = &vkViewport;
+    vkViewportState.scissorCount = 1;
+    vkViewportState.pScissors = &vkScissor;
 
     // ==========================================================================
     //                 STEP 17: Create a rasterization stage
@@ -917,20 +917,20 @@ int main()
     // ==========================================================================
 
     // Rasterizer create info
-    VkPipelineRasterizationStateCreateInfo rasterizer{};
-    rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-    rasterizer.depthClampEnable = VK_FALSE;
-    rasterizer.rasterizerDiscardEnable = VK_FALSE;
+    VkPipelineRasterizationStateCreateInfo vkRasterizer{};
+    vkRasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    vkRasterizer.depthClampEnable = VK_FALSE;
+    vkRasterizer.rasterizerDiscardEnable = VK_FALSE;
     // Fill in triangles.
-    rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-    rasterizer.lineWidth = 1.0f;
+    vkRasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+    vkRasterizer.lineWidth = 1.0f;
     // Enable face culling.
-    rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-    rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
-    rasterizer.depthBiasEnable = VK_FALSE;
-    rasterizer.depthBiasConstantFactor = 0.0f;
-    rasterizer.depthBiasClamp = 0.0f;
-    rasterizer.depthBiasSlopeFactor = 0.0f;
+    vkRasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+    vkRasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    vkRasterizer.depthBiasEnable = VK_FALSE;
+    vkRasterizer.depthBiasConstantFactor = 0.0f;
+    vkRasterizer.depthBiasClamp = 0.0f;
+    vkRasterizer.depthBiasSlopeFactor = 0.0f;
 
     // ==========================================================================
     //                      STEP 18: Create a MSAA state
@@ -941,14 +941,14 @@ int main()
     // ==========================================================================
 
     // Create a state for MSAA.
-    VkPipelineMultisampleStateCreateInfo multisampling{};
-    multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampling.sampleShadingEnable = VK_FALSE;
-    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-    multisampling.minSampleShading = 1.0f;
-    multisampling.pSampleMask = nullptr;
-    multisampling.alphaToCoverageEnable = VK_FALSE;
-    multisampling.alphaToOneEnable = VK_FALSE;
+    VkPipelineMultisampleStateCreateInfo vkMultisampling{};
+    vkMultisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    vkMultisampling.sampleShadingEnable = VK_FALSE;
+    vkMultisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    vkMultisampling.minSampleShading = 1.0f;
+    vkMultisampling.pSampleMask = nullptr;
+    vkMultisampling.alphaToCoverageEnable = VK_FALSE;
+    vkMultisampling.alphaToOneEnable = VK_FALSE;
 
     // ==========================================================================
     //               STEP 19: Configure depth and stensil tests
@@ -958,17 +958,17 @@ int main()
     // operation and disable stensil test.
     // ==========================================================================
 
-    VkPipelineDepthStencilStateCreateInfo depthStencil{};
-    depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    depthStencil.depthTestEnable = VK_TRUE;
-    depthStencil.depthWriteEnable = VK_TRUE;
-    depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
-    depthStencil.depthBoundsTestEnable = VK_FALSE;
-    depthStencil.minDepthBounds = 0.0f;
-    depthStencil.maxDepthBounds = 1.0f;
-    depthStencil.stencilTestEnable = VK_FALSE;
-    depthStencil.front = VkStencilOpState{};
-    depthStencil.back = VkStencilOpState{};
+    VkPipelineDepthStencilStateCreateInfo vkDepthStencil{};
+    vkDepthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    vkDepthStencil.depthTestEnable = VK_TRUE;
+    vkDepthStencil.depthWriteEnable = VK_TRUE;
+    vkDepthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+    vkDepthStencil.depthBoundsTestEnable = VK_FALSE;
+    vkDepthStencil.minDepthBounds = 0.0f;
+    vkDepthStencil.maxDepthBounds = 1.0f;
+    vkDepthStencil.stencilTestEnable = VK_FALSE;
+    vkDepthStencil.front = VkStencilOpState{};
+    vkDepthStencil.back = VkStencilOpState{};
 
     // ==========================================================================
     //                 STEP 20: Create a color blend state
@@ -979,29 +979,29 @@ int main()
     // ==========================================================================
 
     // Configuration per attached framebuffer.
-    VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    colorBlendAttachment.blendEnable = VK_FALSE;
+    VkPipelineColorBlendAttachmentState vkColorBlendAttachment{};
+    vkColorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    vkColorBlendAttachment.blendEnable = VK_FALSE;
     // Other fields are optional.
-    colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-    colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
-    colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-    colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-    colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-    colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+    vkColorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+    vkColorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+    vkColorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+    vkColorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    vkColorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    vkColorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
     // Global color blending settings.
-    VkPipelineColorBlendStateCreateInfo colorBlending{};
-    colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-    colorBlending.attachmentCount = 1;
-    colorBlending.pAttachments = &colorBlendAttachment;
-    colorBlending.logicOpEnable = VK_FALSE;
+    VkPipelineColorBlendStateCreateInfo vkColorBlending{};
+    vkColorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    vkColorBlending.attachmentCount = 1;
+    vkColorBlending.pAttachments = &vkColorBlendAttachment;
+    vkColorBlending.logicOpEnable = VK_FALSE;
     // Other fields are optional.
-    colorBlending.logicOp = VK_LOGIC_OP_COPY;
-    colorBlending.blendConstants[0] = 0.0f;
-    colorBlending.blendConstants[1] = 0.0f;
-    colorBlending.blendConstants[2] = 0.0f;
-    colorBlending.blendConstants[3] = 0.0f;
+    vkColorBlending.logicOp = VK_LOGIC_OP_COPY;
+    vkColorBlending.blendConstants[0] = 0.0f;
+    vkColorBlending.blendConstants[1] = 0.0f;
+    vkColorBlending.blendConstants[2] = 0.0f;
+    vkColorBlending.blendConstants[3] = 0.0f;
 
     // ==========================================================================
     //                   STEP 21: Create a color attachment
@@ -1011,15 +1011,15 @@ int main()
     // ==========================================================================
 
     // Descriptor of a color attachment.
-    VkAttachmentDescription colorAttachment{};
-    colorAttachment.format = vkSelectedFormat.format;
-    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    VkAttachmentDescription vkColorAttachment{};
+    vkColorAttachment.format = vkSelectedFormat.format;
+    vkColorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    vkColorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    vkColorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    vkColorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    vkColorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    vkColorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    vkColorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
     // Color attachment reference.
     VkAttachmentReference colorAttachmentRef{};
@@ -1038,20 +1038,20 @@ int main()
     // ==========================================================================
 
     // Descriptor of a depth attachment.
-    VkAttachmentDescription depthAttachment{};
-    depthAttachment.format = depthFormat;
-    depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    VkAttachmentDescription vkDepthAttachment{};
+    vkDepthAttachment.format = vkDepthFormat;
+    vkDepthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    vkDepthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    vkDepthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    vkDepthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    vkDepthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    vkDepthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    vkDepthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     // Depth attachment reference.
-    VkAttachmentReference depthAttachmentRef{};
-    depthAttachmentRef.attachment = 1;
-    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    VkAttachmentReference vkDepthAttachmentRef{};
+    vkDepthAttachmentRef.attachment = 1;
+    vkDepthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     // ==========================================================================
     //                     STEP 23: Create a render pass
@@ -1064,35 +1064,35 @@ int main()
     // ==========================================================================
 
     // Define a subpass and include both attachments (color and depth-stensil).
-    VkSubpassDescription subpass{};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
-    subpass.pDepthStencilAttachment = &depthAttachmentRef;
+    VkSubpassDescription vkSubpass{};
+    vkSubpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    vkSubpass.colorAttachmentCount = 1;
+    vkSubpass.pColorAttachments = &colorAttachmentRef;
+    vkSubpass.pDepthStencilAttachment = &vkDepthAttachmentRef;
 
     // Define a subpass dependency.
-    VkSubpassDependency dependency{};
-    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-    dependency.dstSubpass = 0;
-    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.srcAccessMask = 0;
-    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    VkSubpassDependency vkDependency{};
+    vkDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    vkDependency.dstSubpass = 0;
+    vkDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    vkDependency.srcAccessMask = 0;
+    vkDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    vkDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
     // Define a render pass and attach the subpass.
-    VkRenderPassCreateInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    std::array< VkAttachmentDescription, 2 > attachments = { colorAttachment, depthAttachment };
-    renderPassInfo.attachmentCount = static_cast< uint32_t >(attachments.size());
-    renderPassInfo.pAttachments = attachments.data();
-    renderPassInfo.subpassCount = 1;
-    renderPassInfo.pSubpasses = &subpass;
-    renderPassInfo.dependencyCount = 1;
-    renderPassInfo.pDependencies = &dependency;
+    VkRenderPassCreateInfo vkRenderPassInfo{};
+    vkRenderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    std::array< VkAttachmentDescription, 2 > attachments = { vkColorAttachment, vkDepthAttachment };
+    vkRenderPassInfo.attachmentCount = static_cast< uint32_t >(attachments.size());
+    vkRenderPassInfo.pAttachments = attachments.data();
+    vkRenderPassInfo.subpassCount = 1;
+    vkRenderPassInfo.pSubpasses = &vkSubpass;
+    vkRenderPassInfo.dependencyCount = 1;
+    vkRenderPassInfo.pDependencies = &vkDependency;
 
     // Create a render pass.
-    VkRenderPass renderPass;
-    if (vkCreateRenderPass(vkDevice, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
+    VkRenderPass vkRenderPass;
+    if (vkCreateRenderPass(vkDevice, &vkRenderPassInfo, nullptr, &vkRenderPass) != VK_SUCCESS) {
         std::cerr << "Failed to create a render pass!" << std::endl;
         abort();
     }
@@ -1104,42 +1104,42 @@ int main()
     // ==========================================================================
 
     // Define a pipeline layout.
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
-    pipelineLayoutInfo.pushConstantRangeCount = 0;
-    pipelineLayoutInfo.pPushConstantRanges = nullptr;
+    VkPipelineLayoutCreateInfo vkPipelineLayoutInfo{};
+    vkPipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    vkPipelineLayoutInfo.setLayoutCount = 1;
+    vkPipelineLayoutInfo.pSetLayouts = &vkDescriptorSetLayout;
+    vkPipelineLayoutInfo.pushConstantRangeCount = 0;
+    vkPipelineLayoutInfo.pPushConstantRanges = nullptr;
 
     // Create a pipeline layout.
-    VkPipelineLayout pipelineLayout;
-    if (vkCreatePipelineLayout(vkDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
+    VkPipelineLayout vkPipelineLayout;
+    if (vkCreatePipelineLayout(vkDevice, &vkPipelineLayoutInfo, nullptr, &vkPipelineLayout) != VK_SUCCESS) {
         std::cerr << "Failed to creare a pipeline layout!" << std::endl;
         abort();
     }
 
     // Define a pipeline and provide all stages created above.
-    VkGraphicsPipelineCreateInfo pipelineInfo{};
-    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineInfo.stageCount = shaderStages.size();
-    pipelineInfo.pStages = shaderStages.data();
-    pipelineInfo.pVertexInputState = &vertexInputInfo;
-    pipelineInfo.pInputAssemblyState = &inputAssembly;
-    pipelineInfo.pViewportState = &viewportState;
-    pipelineInfo.pRasterizationState = &rasterizer;
-    pipelineInfo.pMultisampleState = &multisampling;
-    pipelineInfo.pDepthStencilState = &depthStencil;
-    pipelineInfo.pColorBlendState = &colorBlending;
-    pipelineInfo.pDynamicState = nullptr;
-    pipelineInfo.layout = pipelineLayout;
-    pipelineInfo.renderPass = renderPass;
-    pipelineInfo.subpass = 0;
-    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-    pipelineInfo.basePipelineIndex = -1;
+    VkGraphicsPipelineCreateInfo vkPipelineInfo{};
+    vkPipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    vkPipelineInfo.stageCount = shaderStages.size();
+    vkPipelineInfo.pStages = shaderStages.data();
+    vkPipelineInfo.pVertexInputState = &vkVertexInputInfo;
+    vkPipelineInfo.pInputAssemblyState = &vkInputAssembly;
+    vkPipelineInfo.pViewportState = &vkViewportState;
+    vkPipelineInfo.pRasterizationState = &vkRasterizer;
+    vkPipelineInfo.pMultisampleState = &vkMultisampling;
+    vkPipelineInfo.pDepthStencilState = &vkDepthStencil;
+    vkPipelineInfo.pColorBlendState = &vkColorBlending;
+    vkPipelineInfo.pDynamicState = nullptr;
+    vkPipelineInfo.layout = vkPipelineLayout;
+    vkPipelineInfo.renderPass = vkRenderPass;
+    vkPipelineInfo.subpass = 0;
+    vkPipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+    vkPipelineInfo.basePipelineIndex = -1;
 
     // Create a pipeline.
-    VkPipeline graphicsPipeline;
-    if (vkCreateGraphicsPipelines(vkDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
+    VkPipeline vkGraphicsPipeline;
+    if (vkCreateGraphicsPipelines(vkDevice, VK_NULL_HANDLE, 1, &vkPipelineInfo, nullptr, &vkGraphicsPipeline) != VK_SUCCESS) {
         std::cerr << "Failed to create a graphics pipeline!" << std::endl;
         abort();
     }
@@ -1160,8 +1160,8 @@ int main()
     vkGetSwapchainImagesKHR(vkDevice, vkSwapChain, &vkSwapChainImageCount, vkSwapChainImages.data());
 
     // Create image views for each image.
-    std::vector< VkImageView > swapChainImageViews;
-    swapChainImageViews.resize(vkSwapChainImageCount);
+    std::vector< VkImageView > vkSwapChainImageViews;
+    vkSwapChainImageViews.resize(vkSwapChainImageCount);
     for (size_t i = 0; i < vkSwapChainImageCount; i++) {
         // Image view create info.
         VkImageViewCreateInfo createInfo{};
@@ -1179,7 +1179,7 @@ int main()
         createInfo.subresourceRange.baseArrayLayer = 0;
         createInfo.subresourceRange.layerCount = 1;
         // Create an image view.
-        if (vkCreateImageView(vkDevice, &createInfo, nullptr, &swapChainImageViews[i]) != VK_SUCCESS) {
+        if (vkCreateImageView(vkDevice, &createInfo, nullptr, &vkSwapChainImageViews[i]) != VK_SUCCESS) {
             std::cerr << "Failed to create an image view #" << i << "!" << std::endl;
             abort();
         }
@@ -1194,42 +1194,42 @@ int main()
     // ==========================================================================
 
     // Describe a depth image.
-    VkImageCreateInfo imageInfo{};
-    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    imageInfo.imageType = VK_IMAGE_TYPE_2D;
-    imageInfo.extent.width = vkSelectedExtent.width;
-    imageInfo.extent.height = vkSelectedExtent.height;
-    imageInfo.extent.depth = 1;
-    imageInfo.mipLevels = 1;
-    imageInfo.arrayLayers = 1;
-    imageInfo.format = depthFormat;
-    imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    VkImageCreateInfo vkImageInfo{};
+    vkImageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    vkImageInfo.imageType = VK_IMAGE_TYPE_2D;
+    vkImageInfo.extent.width = vkSelectedExtent.width;
+    vkImageInfo.extent.height = vkSelectedExtent.height;
+    vkImageInfo.extent.depth = 1;
+    vkImageInfo.mipLevels = 1;
+    vkImageInfo.arrayLayers = 1;
+    vkImageInfo.format = vkDepthFormat;
+    vkImageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    vkImageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    vkImageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    vkImageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    vkImageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
     // Create a depth image.
-    VkImage depthImage;
-    if (vkCreateImage(vkDevice, &imageInfo, nullptr, &depthImage) != VK_SUCCESS) {
+    VkImage vkDepthImage;
+    if (vkCreateImage(vkDevice, &vkImageInfo, nullptr, &vkDepthImage) != VK_SUCCESS) {
         std::cerr << "Failed to create a depth image!" << std::endl;
         abort();
     }
 
     // Retrieve memory requirements for the depth image.
-    VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(vkDevice, depthImage, &memRequirements);
+    VkMemoryRequirements vkmDepthMemRequirements;
+    vkGetImageMemoryRequirements(vkDevice, vkDepthImage, &vkmDepthMemRequirements);
 
     // Define memory allocate info.
     VkMemoryAllocateInfo memoryAllocInfo{};
     memoryAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    memoryAllocInfo.allocationSize = memRequirements.size;
+    memoryAllocInfo.allocationSize = vkmDepthMemRequirements.size;
     // Find a suitable memory type.
     uint32_t memTypeIndex = UINT32_MAX;
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(vkPhysicalDevice, &memProperties);
     for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-        if ((memRequirements.memoryTypeBits & (1 << i)) &&
+        if ((vkmDepthMemRequirements.memoryTypeBits & (1 << i)) &&
                 (memProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)) {
             memTypeIndex = i;
             break;
@@ -1238,14 +1238,14 @@ int main()
     memoryAllocInfo.memoryTypeIndex = memTypeIndex;
 
     // Allocate memory for the depth image.
-    VkDeviceMemory depthImageMemory;
-    if (vkAllocateMemory(vkDevice, &memoryAllocInfo, nullptr, &depthImageMemory) != VK_SUCCESS) {
+    VkDeviceMemory vkDepthImageMemory;
+    if (vkAllocateMemory(vkDevice, &memoryAllocInfo, nullptr, &vkDepthImageMemory) != VK_SUCCESS) {
         std::cerr << "Failed to allocate image memory!" << std::endl;
         abort();
     }
 
     // Bind the image to the allocated memory.
-    vkBindImageMemory(vkDevice, depthImage, depthImageMemory, 0);
+    vkBindImageMemory(vkDevice, vkDepthImage, vkDepthImageMemory, 0);
 
     // ==========================================================================
     //                STEP 27: Create a depth buffer image view
@@ -1254,20 +1254,20 @@ int main()
     // ==========================================================================
 
     // Destribe an image view.
-    VkImageViewCreateInfo viewInfo{};
-    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewInfo.image = depthImage;
-    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    viewInfo.format = depthFormat;
-    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-    viewInfo.subresourceRange.baseMipLevel = 0;
-    viewInfo.subresourceRange.levelCount = 1;
-    viewInfo.subresourceRange.baseArrayLayer = 0;
-    viewInfo.subresourceRange.layerCount = 1;
+    VkImageViewCreateInfo vkViewInfo{};
+    vkViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    vkViewInfo.image = vkDepthImage;
+    vkViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    vkViewInfo.format = vkDepthFormat;
+    vkViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+    vkViewInfo.subresourceRange.baseMipLevel = 0;
+    vkViewInfo.subresourceRange.levelCount = 1;
+    vkViewInfo.subresourceRange.baseArrayLayer = 0;
+    vkViewInfo.subresourceRange.layerCount = 1;
 
     // Create an image view.
-    VkImageView depthImageView;
-    if (vkCreateImageView(vkDevice, &viewInfo, nullptr, &depthImageView) != VK_SUCCESS) {
+    VkImageView vkDepthImageView;
+    if (vkCreateImageView(vkDevice, &vkViewInfo, nullptr, &vkDepthImageView) != VK_SUCCESS) {
         std::cerr << "Failed to create a texture image view!" << std::endl;
         abort();
     }
@@ -1280,28 +1280,28 @@ int main()
     // ==========================================================================
 
     // Create framebuffers.
-    std::vector< VkFramebuffer > swapChainFramebuffers;
-    swapChainFramebuffers.resize(swapChainImageViews.size());
-    for (size_t i = 0; i < swapChainImageViews.size(); i++) {
+    std::vector< VkFramebuffer > vkSwapChainFramebuffers;
+    vkSwapChainFramebuffers.resize(vkSwapChainImageViews.size());
+    for (size_t i = 0; i < vkSwapChainImageViews.size(); i++) {
         // We have only two attachments: color and depth.
         // Depth attachment is shared.
         std::array< VkImageView, 2 > attachments = {
-            swapChainImageViews[i],
-            depthImageView
+            vkSwapChainImageViews[i],
+            vkDepthImageView
         };
 
         // Describe a framebuffer.
-        VkFramebufferCreateInfo framebufferInfo{};
-        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = renderPass;
-        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());;
-        framebufferInfo.pAttachments =  attachments.data();
-        framebufferInfo.width = vkSelectedExtent.width;
-        framebufferInfo.height = vkSelectedExtent.height;
-        framebufferInfo.layers = 1;
+        VkFramebufferCreateInfo vkFramebufferInfo{};
+        vkFramebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        vkFramebufferInfo.renderPass = vkRenderPass;
+        vkFramebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());;
+        vkFramebufferInfo.pAttachments =  attachments.data();
+        vkFramebufferInfo.width = vkSelectedExtent.width;
+        vkFramebufferInfo.height = vkSelectedExtent.height;
+        vkFramebufferInfo.layers = 1;
 
         // Create a framebuffer.
-        if (vkCreateFramebuffer(vkDevice, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS) {
+        if (vkCreateFramebuffer(vkDevice, &vkFramebufferInfo, nullptr, &vkSwapChainFramebuffers[i]) != VK_SUCCESS) {
             std::cerr << "Failed to create a framebuffer!" << std::endl;
             abort();
         }
@@ -1367,55 +1367,55 @@ int main()
     VkDeviceSize vertexBufferSize = sizeof(vertices[0]) * vertices.size();
 
     // Describe a buffer.
-    VkBufferCreateInfo bufferInfo{};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = vertexBufferSize;
-    bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    VkBufferCreateInfo vkVertexBufferInfo{};
+    vkVertexBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    vkVertexBufferInfo.size = vertexBufferSize;
+    vkVertexBufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    vkVertexBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
     // Create a buffer.
-    VkBuffer vertexBuffer;
-    if (vkCreateBuffer(vkDevice, &bufferInfo, nullptr, &vertexBuffer) != VK_SUCCESS) {
+    VkBuffer vkVertexBuffer;
+    if (vkCreateBuffer(vkDevice, &vkVertexBufferInfo, nullptr, &vkVertexBuffer) != VK_SUCCESS) {
         std::cerr << "Failed to create a vertex buffer!" << std::endl;
         abort();
     }
 
     // Retrieve memory requirements for the vertex buffer.
-    VkMemoryRequirements vertexBufferMemRequirements;
-    vkGetBufferMemoryRequirements(vkDevice, vertexBuffer, &vertexBufferMemRequirements);
+    VkMemoryRequirements vkVertexBufferMemRequirements;
+    vkGetBufferMemoryRequirements(vkDevice, vkVertexBuffer, &vkVertexBufferMemRequirements);
 
     // Define memory allocate info.
-    VkMemoryAllocateInfo vertexBufferAllocInfo{};
-    vertexBufferAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    vertexBufferAllocInfo.allocationSize = vertexBufferMemRequirements.size;
+    VkMemoryAllocateInfo vkVertexBufferAllocInfo{};
+    vkVertexBufferAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    vkVertexBufferAllocInfo.allocationSize = vkVertexBufferMemRequirements.size;
     // Find a suitable memory type.
     uint32_t bufferMemTypeIndex = UINT32_MAX;
-    VkMemoryPropertyFlags bufferMemFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    VkPhysicalDeviceMemoryProperties bufferMemProperties;
-    vkGetPhysicalDeviceMemoryProperties(vkPhysicalDevice, &bufferMemProperties);
-    for (uint32_t i = 0; i < bufferMemProperties.memoryTypeCount; i++) {
-        if ((vertexBufferMemRequirements.memoryTypeBits & (1 << i)) &&
-                (bufferMemProperties.memoryTypes[i].propertyFlags & bufferMemFlags) == bufferMemFlags) {
+    VkMemoryPropertyFlags vkBufferMemFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    VkPhysicalDeviceMemoryProperties vkBufferMemProperties;
+    vkGetPhysicalDeviceMemoryProperties(vkPhysicalDevice, &vkBufferMemProperties);
+    for (uint32_t i = 0; i < vkBufferMemProperties.memoryTypeCount; i++) {
+        if ((vkVertexBufferMemRequirements.memoryTypeBits & (1 << i)) &&
+                (vkBufferMemProperties.memoryTypes[i].propertyFlags & vkBufferMemFlags) == vkBufferMemFlags) {
             bufferMemTypeIndex = i;
             break;
         }
     }
-    vertexBufferAllocInfo.memoryTypeIndex = bufferMemTypeIndex;
+    vkVertexBufferAllocInfo.memoryTypeIndex = bufferMemTypeIndex;
     // Allocate memory for the vertex buffer.
-    VkDeviceMemory vertexBufferMemory;
-    if (vkAllocateMemory(vkDevice, &vertexBufferAllocInfo, nullptr, &vertexBufferMemory) != VK_SUCCESS) {
+    VkDeviceMemory vkVertexBufferMemory;
+    if (vkAllocateMemory(vkDevice, &vkVertexBufferAllocInfo, nullptr, &vkVertexBufferMemory) != VK_SUCCESS) {
         std::cerr << "Failed to allocate memroy for the vertex buffer!" << std::endl;
         abort();
     }
 
     // Bind the buffer to the allocated memory.
-    vkBindBufferMemory(vkDevice, vertexBuffer, vertexBufferMemory, 0);
+    vkBindBufferMemory(vkDevice, vkVertexBuffer, vkVertexBufferMemory, 0);
 
     // Copy our vertices to the allocated memory.
     void* vertexBufferMemoryData;
-    vkMapMemory(vkDevice, vertexBufferMemory, 0, vertexBufferSize, 0, &vertexBufferMemoryData);
+    vkMapMemory(vkDevice, vkVertexBufferMemory, 0, vertexBufferSize, 0, &vertexBufferMemoryData);
     memcpy(vertexBufferMemoryData, vertices.data(), (size_t) vertexBufferSize);
-    vkUnmapMemory(vkDevice, vertexBufferMemory);
+    vkUnmapMemory(vkDevice, vkVertexBufferMemory);
 
     // ==========================================================================
     //                      STEP 30: Create uniform buffers
@@ -1439,57 +1439,57 @@ int main()
     VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
     // Uniform buffers.
-    std::vector< VkBuffer > uniformBuffers;
-    uniformBuffers.resize(vkSwapChainImages.size());
+    std::vector< VkBuffer > vkUniformBuffers;
+    vkUniformBuffers.resize(vkSwapChainImages.size());
 
     // Memory of uniform buffers.
-    std::vector< VkDeviceMemory > uniformBuffersMemory;
-    uniformBuffersMemory.resize(vkSwapChainImages.size());
+    std::vector< VkDeviceMemory > vkUniformBuffersMemory;
+    vkUniformBuffersMemory.resize(vkSwapChainImages.size());
 
     // Create one uniform buffer per swap chain image.
     for (size_t i = 0; i < vkSwapChainImages.size(); i++) {
         // Describe a buffer.
-        VkBufferCreateInfo bufferInfo{};
-        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bufferInfo.size = bufferSize;
-        bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        VkBufferCreateInfo vkBufferInfo{};
+        vkBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        vkBufferInfo.size = bufferSize;
+        vkBufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+        vkBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
         // Create a buffer.
-        if (vkCreateBuffer(vkDevice, &bufferInfo, nullptr, &uniformBuffers[i]) != VK_SUCCESS) {
+        if (vkCreateBuffer(vkDevice, &vkBufferInfo, nullptr, &vkUniformBuffers[i]) != VK_SUCCESS) {
             std::cerr << "Failed to create a buffer!" << std::endl;
             abort();
         }
 
         // Retrieve memory requirements for the vertex buffer.
-        VkMemoryRequirements memRequirements;
-        vkGetBufferMemoryRequirements(vkDevice, uniformBuffers[i], &memRequirements);
+        VkMemoryRequirements vkMemRequirements;
+        vkGetBufferMemoryRequirements(vkDevice, vkUniformBuffers[i], &vkMemRequirements);
 
         // Define memory allocate info.
-        VkMemoryAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        allocInfo.allocationSize = memRequirements.size;
+        VkMemoryAllocateInfo vkAllocInfo{};
+        vkAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        vkAllocInfo.allocationSize = vkMemRequirements.size;
         // Select suitable memory type.
         uint32_t memTypeIndex = UINT32_MAX;
-        VkMemoryPropertyFlags memFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-        VkPhysicalDeviceMemoryProperties memProperties;
-        vkGetPhysicalDeviceMemoryProperties(vkPhysicalDevice, &memProperties);
-        for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-            if ((memRequirements.memoryTypeBits & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & memFlags) == memFlags) {
+        VkMemoryPropertyFlags vkMemFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        VkPhysicalDeviceMemoryProperties vkMemProperties;
+        vkGetPhysicalDeviceMemoryProperties(vkPhysicalDevice, &vkMemProperties);
+        for (uint32_t i = 0; i < vkMemProperties.memoryTypeCount; i++) {
+            if ((vkMemRequirements.memoryTypeBits & (1 << i)) && (vkMemProperties.memoryTypes[i].propertyFlags & vkMemFlags) == vkMemFlags) {
                 memTypeIndex = i;
                 break;
             }
         }
-        allocInfo.memoryTypeIndex = memTypeIndex;
+        vkAllocInfo.memoryTypeIndex = memTypeIndex;
 
         // Allocate memory for the vertex buffer.
-        if (vkAllocateMemory(vkDevice, &allocInfo, nullptr, &uniformBuffersMemory[i]) != VK_SUCCESS) {
+        if (vkAllocateMemory(vkDevice, &vkAllocInfo, nullptr, &vkUniformBuffersMemory[i]) != VK_SUCCESS) {
             std::cerr << "Failed to allocate buffer memory!" << std::endl;
             abort();
         }
 
         // Bind the buffer to the allocated memory.
-        vkBindBufferMemory(vkDevice, uniformBuffers[i], uniformBuffersMemory[i], 0);
+        vkBindBufferMemory(vkDevice, vkUniformBuffers[i], vkUniformBuffersMemory[i], 0);
     }
 
     // ==========================================================================
@@ -1501,38 +1501,38 @@ int main()
     // ==========================================================================
 
     // Define a descriptor pool size. We need one descriptor set per swap chain image.
-    VkDescriptorPoolSize poolSize{};
-    poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSize.descriptorCount = static_cast< uint32_t >(vkSwapChainImages.size());
+    VkDescriptorPoolSize vkPoolSize{};
+    vkPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    vkPoolSize.descriptorCount = static_cast< uint32_t >(vkSwapChainImages.size());
 
     // Define descriptor pool.
-    VkDescriptorPoolCreateInfo descriptorPoolInfo{};
-    descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    descriptorPoolInfo.poolSizeCount = 1;
-    descriptorPoolInfo.pPoolSizes = &poolSize;
-    descriptorPoolInfo.maxSets = static_cast< uint32_t >(vkSwapChainImages.size());
+    VkDescriptorPoolCreateInfo vkDescriptorPoolInfo{};
+    vkDescriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    vkDescriptorPoolInfo.poolSizeCount = 1;
+    vkDescriptorPoolInfo.pPoolSizes = &vkPoolSize;
+    vkDescriptorPoolInfo.maxSets = static_cast< uint32_t >(vkSwapChainImages.size());
 
     // Create descriptor pool.
-    VkDescriptorPool descriptorPool;
-    if (vkCreateDescriptorPool(vkDevice, &descriptorPoolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
+    VkDescriptorPool vkDescriptorPool;
+    if (vkCreateDescriptorPool(vkDevice, &vkDescriptorPoolInfo, nullptr, &vkDescriptorPool) != VK_SUCCESS) {
         std::cerr << "Failed to create a descriptor pool!" << std::endl;
         abort();
     }
 
     // Take a descriptor set layout created above and use it for all descriptor sets.
-    std::vector< VkDescriptorSetLayout > layouts(vkSwapChainImages.size(), descriptorSetLayout);
+    std::vector< VkDescriptorSetLayout > layouts(vkSwapChainImages.size(), vkDescriptorSetLayout);
 
     // Describe allocate infor for descriptor set.
-    VkDescriptorSetAllocateInfo descriptSetAllocInfo{};
-    descriptSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    descriptSetAllocInfo.descriptorPool = descriptorPool;
-    descriptSetAllocInfo.descriptorSetCount = static_cast< uint32_t >(vkSwapChainImages.size());
-    descriptSetAllocInfo.pSetLayouts = layouts.data();
+    VkDescriptorSetAllocateInfo vkDescriptSetAllocInfo{};
+    vkDescriptSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    vkDescriptSetAllocInfo.descriptorPool = vkDescriptorPool;
+    vkDescriptSetAllocInfo.descriptorSetCount = static_cast< uint32_t >(vkSwapChainImages.size());
+    vkDescriptSetAllocInfo.pSetLayouts = layouts.data();
 
     // Create a descriptor set.
-    std::vector< VkDescriptorSet > descriptorSets;
-    descriptorSets.resize(vkSwapChainImages.size());
-    if (vkAllocateDescriptorSets(vkDevice, &descriptSetAllocInfo, descriptorSets.data()) != VK_SUCCESS) {
+    std::vector< VkDescriptorSet > vkDescriptorSets;
+    vkDescriptorSets.resize(vkSwapChainImages.size());
+    if (vkAllocateDescriptorSets(vkDevice, &vkDescriptSetAllocInfo, vkDescriptorSets.data()) != VK_SUCCESS) {
         std::cerr << "Failed to allocate descriptor set!" << std::endl;
         abort();
     }
@@ -1540,25 +1540,25 @@ int main()
     // Write descriptors for each uniform buffer.
     for (size_t i = 0; i < vkSwapChainImages.size(); i++) {
         // Describe a uniform buffer info.
-        VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = uniformBuffers[i];
-        bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(UniformBufferObject);
+        VkDescriptorBufferInfo vkBufferInfo{};
+        vkBufferInfo.buffer = vkUniformBuffers[i];
+        vkBufferInfo.offset = 0;
+        vkBufferInfo.range = sizeof(UniformBufferObject);
 
         // Describe a descriptor set to write.
-        VkWriteDescriptorSet descriptorWrite{};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = descriptorSets[i];
-        descriptorWrite.dstBinding = 0;
-        descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pBufferInfo = &bufferInfo;
-        descriptorWrite.pImageInfo = nullptr;
-        descriptorWrite.pTexelBufferView = nullptr;
+        VkWriteDescriptorSet vkDescriptorWrite{};
+        vkDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        vkDescriptorWrite.dstSet = vkDescriptorSets[i];
+        vkDescriptorWrite.dstBinding = 0;
+        vkDescriptorWrite.dstArrayElement = 0;
+        vkDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        vkDescriptorWrite.descriptorCount = 1;
+        vkDescriptorWrite.pBufferInfo = &vkBufferInfo;
+        vkDescriptorWrite.pImageInfo = nullptr;
+        vkDescriptorWrite.pTexelBufferView = nullptr;
 
         // Write the descriptor set.
-        vkUpdateDescriptorSets(vkDevice, 1, &descriptorWrite, 0, nullptr);
+        vkUpdateDescriptorSets(vkDevice, 1, &vkDescriptorWrite, 0, nullptr);
     }
 
     // ==========================================================================
@@ -1571,80 +1571,80 @@ int main()
     // ==========================================================================
 
     // Describe a command pool.
-    VkCommandPoolCreateInfo poolInfo{};
-    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
-    poolInfo.flags = 0;
+    VkCommandPoolCreateInfo vkPoolInfo{};
+    vkPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    vkPoolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+    vkPoolInfo.flags = 0;
 
     // Create a command pool.
-    VkCommandPool commandPool;
-    if (vkCreateCommandPool(vkDevice, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
+    VkCommandPool vkCommandPool;
+    if (vkCreateCommandPool(vkDevice, &vkPoolInfo, nullptr, &vkCommandPool) != VK_SUCCESS) {
         std::cerr << "Failed to create a command pool!" << std::endl;
         abort();
     }
 
     // Create a vector for all command buffers.
-    std::vector< VkCommandBuffer > commandBuffers;
-    commandBuffers.resize(swapChainFramebuffers.size());
+    std::vector< VkCommandBuffer > vkCommandBuffers;
+    vkCommandBuffers.resize(vkSwapChainFramebuffers.size());
 
     // Describe a command buffer allocate info.
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = commandPool;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = static_cast< uint32_t >(commandBuffers.size());
+    VkCommandBufferAllocateInfo vkAllocInfo{};
+    vkAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    vkAllocInfo.commandPool = vkCommandPool;
+    vkAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    vkAllocInfo.commandBufferCount = static_cast< uint32_t >(vkCommandBuffers.size());
 
     // Allocate command buffers.
-    if (vkAllocateCommandBuffers(vkDevice, &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
+    if (vkAllocateCommandBuffers(vkDevice, &vkAllocInfo, vkCommandBuffers.data()) != VK_SUCCESS) {
         std::cerr << "Failed to create command buffers" << std::endl;
         abort();
     }
 
     // Describe a rendering sequence for each command buffer.
-    for (size_t i = 0; i < commandBuffers.size(); i++) {
+    for (size_t i = 0; i < vkCommandBuffers.size(); i++) {
         // Start adding commands into the buffer.
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = 0;
-        beginInfo.pInheritanceInfo = nullptr;
-        if (vkBeginCommandBuffer(commandBuffers[i], &beginInfo) != VK_SUCCESS) {
+        VkCommandBufferBeginInfo vkBeginInfo{};
+        vkBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        vkBeginInfo.flags = 0;
+        vkBeginInfo.pInheritanceInfo = nullptr;
+        if (vkBeginCommandBuffer(vkCommandBuffers[i], &vkBeginInfo) != VK_SUCCESS) {
             std::cerr << "Failed to start command buffer recording" << std::endl;
             abort();
         }
 
         // Define default values of color and depth buffer attachment elements.
         // In our case this means a black color of the background and a maximal depth of each fragment.
-        std::array< VkClearValue, 2 > clearValues{};
-        clearValues[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
-        clearValues[1].depthStencil = { 1.0f, 0 };
+        std::array< VkClearValue, 2 > vkClearValues{};
+        vkClearValues[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
+        vkClearValues[1].depthStencil = { 1.0f, 0 };
 
         // Describe a render pass.
-        VkRenderPassBeginInfo renderPassBeginInfo{};
-        renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassBeginInfo.renderPass = renderPass;
-        renderPassBeginInfo.framebuffer = swapChainFramebuffers[i];
-        renderPassBeginInfo.renderArea.offset = {0, 0};
-        renderPassBeginInfo.renderArea.extent = vkSelectedExtent;
-        renderPassBeginInfo.clearValueCount = static_cast< uint32_t >(clearValues.size());
-        renderPassBeginInfo.pClearValues = clearValues.data();
+        VkRenderPassBeginInfo vkRenderPassBeginInfo{};
+        vkRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        vkRenderPassBeginInfo.renderPass = vkRenderPass;
+        vkRenderPassBeginInfo.framebuffer = vkSwapChainFramebuffers[i];
+        vkRenderPassBeginInfo.renderArea.offset = { 0, 0 };
+        vkRenderPassBeginInfo.renderArea.extent = vkSelectedExtent;
+        vkRenderPassBeginInfo.clearValueCount = static_cast< uint32_t >(vkClearValues.size());
+        vkRenderPassBeginInfo.pClearValues = vkClearValues.data();
 
         // Start render pass.
-        vkCmdBeginRenderPass(commandBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(vkCommandBuffers[i], &vkRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
         // Bind a pipeline we defined above.
-        vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+        vkCmdBindPipeline(vkCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, vkGraphicsPipeline);
         // Bind vertices.
-        VkBuffer vertexBuffers[] = {vertexBuffer};
-        VkDeviceSize offsets[] = {0};
-        vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
+        VkBuffer vertexBuffers[] = { vkVertexBuffer };
+        VkDeviceSize offsets[] = { 0 };
+        vkCmdBindVertexBuffers(vkCommandBuffers[i], 0, 1, vertexBuffers, offsets);
         // Bind descriptor sets for uniforms.
-        vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
+        vkCmdBindDescriptorSets(vkCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipelineLayout, 0, 1, &vkDescriptorSets[i], 0, nullptr);
         // Draw command.
-        vkCmdDraw(commandBuffers[i], static_cast< uint32_t >(vertices.size()), 1, 0, 0);
+        vkCmdDraw(vkCommandBuffers[i], static_cast< uint32_t >(vertices.size()), 1, 0, 0);
         // Finish render pass.
-        vkCmdEndRenderPass(commandBuffers[i]);
+        vkCmdEndRenderPass(vkCommandBuffers[i]);
 
         // Fihish adding commands into the buffer.
-        if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
+        if (vkEndCommandBuffer(vkCommandBuffers[i]) != VK_SUCCESS) {
             std::cerr << "Failed to finish command buffer recording" << std::endl;
             abort();
         }
@@ -1660,17 +1660,17 @@ int main()
     // ==========================================================================
 
     // Describe a semaphore.
-    VkSemaphoreCreateInfo semaphoreInfo{};
-    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    VkSemaphoreCreateInfo vkSemaphoreInfo{};
+    vkSemaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
     // The first semaphore group signals that an image is aquired and ready for rendering.
     // Create semaphore per each image we expect to render in parallel.
     // These semaphores perform GPU-GPU synchronization.
-    std::vector< VkSemaphore > imageAvailableSemaphores;
-    imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    std::vector< VkSemaphore > vkImageAvailableSemaphores;
+    vkImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         // Create a semaphore.
-        if (vkCreateSemaphore(vkDevice, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS) {
+        if (vkCreateSemaphore(vkDevice, &vkSemaphoreInfo, nullptr, &vkImageAvailableSemaphores[i]) != VK_SUCCESS) {
             std::cerr << "Failed to create a semaphore!" << std::endl;
             abort();
         }
@@ -1679,11 +1679,11 @@ int main()
     // The second semaphore group signals that an image is rendered and ready for presentation.
     // Create semaphore per each image we expect to render in parallel.
     // These semaphores perform GPU-GPU synchronization.
-    std::vector< VkSemaphore > renderFinishedSemaphores;
-    renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    std::vector< VkSemaphore > vkRenderFinishedSemaphores;
+    vkRenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         // Create a semaphore.
-        if (vkCreateSemaphore(vkDevice, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS) {
+        if (vkCreateSemaphore(vkDevice, &vkSemaphoreInfo, nullptr, &vkRenderFinishedSemaphores[i]) != VK_SUCCESS) {
             std::cerr << "Failed to create a semaphore!" << std::endl;
             abort();
         }
@@ -1693,20 +1693,20 @@ int main()
     // produced by GPU. This CPU-GPU synchronization is performed by fences.
 
     // Free fences for images running in parallel.
-    std::vector< VkFence > inFlightFences;
+    std::vector< VkFence > vkInFlightFences;
     // Buffer of feces, locked by the images running in parallel.
-    std::vector< VkFence > imagesInFlight;
+    std::vector< VkFence > vkImagesInFlight;
 
     // Describe a fence.
-    VkFenceCreateInfo fenceInfo{};
-    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+    VkFenceCreateInfo vkFenceInfo{};
+    vkFenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    vkFenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
     // Create fences.
-    inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-    imagesInFlight.resize(vkSwapChainImages.size(), VK_NULL_HANDLE);
+    vkInFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+    vkImagesInFlight.resize(vkSwapChainImages.size(), VK_NULL_HANDLE);
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        if (vkCreateFence(vkDevice, &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS) {
+        if (vkCreateFence(vkDevice, &vkFenceInfo, nullptr, &vkInFlightFences[i]) != VK_SUCCESS) {
             std::cerr << "Failed to create a fence!" << std::endl;
             abort();
         }
@@ -1747,11 +1747,11 @@ int main()
         glfwPollEvents();
 
         // Wait for the current frame.
-        vkWaitForFences(vkDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+        vkWaitForFences(vkDevice, 1, &vkInFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
         // Aquire a next image from a swap chain to process.
         uint32_t imageIndex;
-        vkAcquireNextImageKHR(vkDevice, vkSwapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+        vkAcquireNextImageKHR(vkDevice, vkSwapChain, UINT64_MAX, vkImageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
         // Calculate time difference and rotation angle.
         auto currentTime = std::chrono::high_resolution_clock::now();
@@ -1767,58 +1767,58 @@ int main()
 
         // Write the uniform buffer object.
         void* data;
-        vkMapMemory(vkDevice, uniformBuffersMemory[imageIndex], 0, sizeof(ubo), 0, &data);
+        vkMapMemory(vkDevice, vkUniformBuffersMemory[imageIndex], 0, sizeof(ubo), 0, &data);
         memcpy(data, &ubo, sizeof(ubo));
-        vkUnmapMemory(vkDevice, uniformBuffersMemory[imageIndex]);
+        vkUnmapMemory(vkDevice, vkUniformBuffersMemory[imageIndex]);
 
         // If the image is locked - wait for it.
-        if (imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
-            vkWaitForFences(vkDevice, 1, &imagesInFlight[imageIndex], VK_TRUE, UINT64_MAX);
+        if (vkImagesInFlight[imageIndex] != VK_NULL_HANDLE) {
+            vkWaitForFences(vkDevice, 1, &vkImagesInFlight[imageIndex], VK_TRUE, UINT64_MAX);
         }
 
         // Put a free fence to imagesInFlight array.
-        imagesInFlight[imageIndex] = inFlightFences[currentFrame];
+        vkImagesInFlight[imageIndex] = vkInFlightFences[currentFrame];
 
         // Describe a submit to the graphics queue.
-        VkSubmitInfo submitInfo{};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        VkSubmitInfo vkSubmitInfo{};
+        vkSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         // Specify semaphores the GPU should wait before executing the submit.
-        std::array< VkSemaphore, 1 > waitSemaphores{ imageAvailableSemaphores[currentFrame] };
+        std::array< VkSemaphore, 1 > vkWaitSemaphores{ vkImageAvailableSemaphores[currentFrame] };
         // Pipeline stages corresponding to each semaphore.
-        std::array< VkPipelineStageFlags, 1 > waitStages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-        submitInfo.waitSemaphoreCount = waitSemaphores.size();
-        submitInfo.pWaitSemaphores = waitSemaphores.data();
-        submitInfo.pWaitDstStageMask = waitStages.data();
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
+        std::array< VkPipelineStageFlags, 1 > vkWaitStages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+        vkSubmitInfo.waitSemaphoreCount = vkWaitSemaphores.size();
+        vkSubmitInfo.pWaitSemaphores = vkWaitSemaphores.data();
+        vkSubmitInfo.pWaitDstStageMask = vkWaitStages.data();
+        vkSubmitInfo.commandBufferCount = 1;
+        vkSubmitInfo.pCommandBuffers = &vkCommandBuffers[imageIndex];
         // Specify semaphores the GPU should unlock after executing the submit.
-        std::array< VkSemaphore, 1 > signalSemaphores{ renderFinishedSemaphores[currentFrame] };
-        submitInfo.signalSemaphoreCount = signalSemaphores.size();
-        submitInfo.pSignalSemaphores = signalSemaphores.data();
+        std::array< VkSemaphore, 1 > vkSignalSemaphores{ vkRenderFinishedSemaphores[currentFrame] };
+        vkSubmitInfo.signalSemaphoreCount = vkSignalSemaphores.size();
+        vkSubmitInfo.pSignalSemaphores = vkSignalSemaphores.data();
 
         // Reset the fence.
-        vkResetFences(vkDevice, 1, &inFlightFences[currentFrame]);
+        vkResetFences(vkDevice, 1, &vkInFlightFences[currentFrame]);
 
         // Submit to the queue.
-        if (vkQueueSubmit(vkGraphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
+        if (vkQueueSubmit(vkGraphicsQueue, 1, &vkSubmitInfo, vkInFlightFences[currentFrame]) != VK_SUCCESS) {
             std::cerr << "Failed to submit" << std::endl;
             abort();
         }
 
         // Prepare an image for presentation.
-        VkPresentInfoKHR presentInfo{};
-        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        VkPresentInfoKHR vkPresentInfo{};
+        vkPresentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
         // Specify semaphores we need to wait before presenting the image.
-        presentInfo.waitSemaphoreCount = signalSemaphores.size();
-        presentInfo.pWaitSemaphores = signalSemaphores.data();
+        vkPresentInfo.waitSemaphoreCount = vkSignalSemaphores.size();
+        vkPresentInfo.pWaitSemaphores = vkSignalSemaphores.data();
         std::array< VkSwapchainKHR, 1 > swapChains{ vkSwapChain };
-        presentInfo.swapchainCount = swapChains.size();
-        presentInfo.pSwapchains = swapChains.data();
-        presentInfo.pImageIndices = &imageIndex;
-        presentInfo.pResults = nullptr;
+        vkPresentInfo.swapchainCount = swapChains.size();
+        vkPresentInfo.pSwapchains = swapChains.data();
+        vkPresentInfo.pImageIndices = &imageIndex;
+        vkPresentInfo.pResults = nullptr;
 
         // Submit and image for presentaion.
-        vkQueuePresentKHR(vkPresentQueue, &presentInfo);
+        vkQueuePresentKHR(vkPresentQueue, &vkPresentInfo);
 
         // Switch to the next frame in the loop.
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
@@ -1835,54 +1835,54 @@ int main()
 
     // Destroy fences.
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        vkDestroyFence(vkDevice, inFlightFences[i], nullptr);
+        vkDestroyFence(vkDevice, vkInFlightFences[i], nullptr);
     }
 
     // Destroy semaphores.
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        vkDestroySemaphore(vkDevice, renderFinishedSemaphores[i], nullptr);
+        vkDestroySemaphore(vkDevice, vkRenderFinishedSemaphores[i], nullptr);
     }
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        vkDestroySemaphore(vkDevice, imageAvailableSemaphores[i], nullptr);
+        vkDestroySemaphore(vkDevice, vkImageAvailableSemaphores[i], nullptr);
     }
 
     // Destroy swap uniform buffers.
     for (size_t i = 0; i < vkSwapChainImages.size(); i++) {
-        vkDestroyBuffer(vkDevice, uniformBuffers[i], nullptr);
-        vkFreeMemory(vkDevice, uniformBuffersMemory[i], nullptr);
+        vkDestroyBuffer(vkDevice, vkUniformBuffers[i], nullptr);
+        vkFreeMemory(vkDevice, vkUniformBuffersMemory[i], nullptr);
     }
 
     // Destory descriptor pool for uniforms.
-    vkDestroyDescriptorPool(vkDevice, descriptorPool, nullptr);
+    vkDestroyDescriptorPool(vkDevice, vkDescriptorPool, nullptr);
 
     // Destroy vertex buffer.
-    vkDestroyBuffer(vkDevice, vertexBuffer, nullptr);
-    vkFreeMemory(vkDevice, vertexBufferMemory, nullptr);
+    vkDestroyBuffer(vkDevice, vkVertexBuffer, nullptr);
+    vkFreeMemory(vkDevice, vkVertexBufferMemory, nullptr);
 
     // Destory command pool
-    vkDestroyCommandPool(vkDevice, commandPool, nullptr);
+    vkDestroyCommandPool(vkDevice, vkCommandPool, nullptr);
 
     // Destory framebuffers.
-    for (auto framebuffer : swapChainFramebuffers) {
+    for (auto framebuffer : vkSwapChainFramebuffers) {
         vkDestroyFramebuffer(vkDevice, framebuffer, nullptr);
     }
 
     // Destroy depth-stensil image and image view.
-    vkDestroyImageView(vkDevice, depthImageView, nullptr);
-    vkDestroyImage(vkDevice, depthImage, nullptr);
-    vkFreeMemory(vkDevice, depthImageMemory, nullptr);
+    vkDestroyImageView(vkDevice, vkDepthImageView, nullptr);
+    vkDestroyImage(vkDevice, vkDepthImage, nullptr);
+    vkFreeMemory(vkDevice, vkDepthImageMemory, nullptr);
 
     // Destory pipeline.
-    vkDestroyPipeline(vkDevice, graphicsPipeline, nullptr);
-    vkDestroyPipelineLayout(vkDevice, pipelineLayout, nullptr);
-    vkDestroyRenderPass(vkDevice, renderPass, nullptr);
+    vkDestroyPipeline(vkDevice, vkGraphicsPipeline, nullptr);
+    vkDestroyPipelineLayout(vkDevice, vkPipelineLayout, nullptr);
+    vkDestroyRenderPass(vkDevice, vkRenderPass, nullptr);
 
     // Destroy shader modules.
     vkDestroyShaderModule(vkDevice, vkFragmentShaderModule, nullptr);
     vkDestroyShaderModule(vkDevice, vkVertexShaderModule, nullptr);
 
     // Destory swap chain image views.
-    for (auto imageView : swapChainImageViews) {
+    for (auto imageView : vkSwapChainImageViews) {
         vkDestroyImageView(vkDevice, imageView, nullptr);
     }
 
@@ -1890,7 +1890,7 @@ int main()
     vkDestroySwapchainKHR(vkDevice, vkSwapChain, nullptr);
 
     // Destory descriptor set layout for uniforms.
-    vkDestroyDescriptorSetLayout(vkDevice, descriptorSetLayout, nullptr);
+    vkDestroyDescriptorSetLayout(vkDevice, vkDescriptorSetLayout, nullptr);
 
     // Destory logical device.
     vkDestroyDevice(vkDevice, nullptr);
