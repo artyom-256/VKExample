@@ -1,25 +1,10 @@
 cmake_minimum_required(VERSION 2.8)
 
-# Check required variables
-if(NOT GLFW_INC)
-    message(FATAL_ERROR "GLFW_INC - path to glfw include directory is missed!")
-endif()
-
-if(NOT GLM_INC)
-    message(FATAL_ERROR "GLM_INC - path to glm include directory is missed!")
-endif()
-
-if(NOT VK_SDK_INC)
-    message(FATAL_ERROR "VK_SDK_INC - path to Vulkan SDK include directory is missed!")
-endif()
-
-if(NOT GLFW_LIB)
-    message(FATAL_ERROR "GLFW_LIB - path to glfw lib directory is missed!")
-endif()
-
-if(NOT VK_SDK_LIB)
-    message(FATAL_ERROR "VK_SDK_LIB - path to Vulkan SDK lib directory is missed!")
-endif()
+SET(GLFW_INC "" CACHE STRING "Path to glfw include directory")
+SET(GLFW_LIB "" CACHE STRING "Path to glfw lib directory")
+SET(GLM_INC "" CACHE STRING "Path to glm include directory")
+SET(VK_SDK_INC "" CACHE STRING "Path to LunarG Vulkan SDK include directory")
+SET(VK_SDK_LIB "" CACHE STRING "Path to LunarG Vulkan SDK lib directory")
 
 # Prepare project build
 project(VKExample)
