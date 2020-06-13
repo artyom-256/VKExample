@@ -933,25 +933,140 @@ int main()
     vkRasterizer.depthBiasSlopeFactor = 0.0f;
 
     // ==========================================================================
-    //                      STEP 18: Create a MSAA state
+    //                     STEP 18: Create an MSAA state
     // ==========================================================================
     // MultiSample Anti-Aliasing is used to make edges smoother by rendering
     // them in higher resolution (having more then one fragment per pixel).
-    // In our example we do not use this feature.
     // ==========================================================================
+
+    // Select the maximal amount of samples supported by the device.
+    VkSampleCountFlagBits vkMsaaSamples = VK_SAMPLE_COUNT_1_BIT;
+    VkPhysicalDeviceProperties vkPhysicalDeviceProperties;
+    vkGetPhysicalDeviceProperties(vkPhysicalDevice, &vkPhysicalDeviceProperties);
+    VkSampleCountFlags vkSampleCounts = vkPhysicalDeviceProperties.limits.framebufferColorSampleCounts & vkPhysicalDeviceProperties.limits.framebufferDepthSampleCounts;
+    if (vkSampleCounts & VK_SAMPLE_COUNT_64_BIT) {
+        vkMsaaSamples = VK_SAMPLE_COUNT_64_BIT;
+    } else if (vkSampleCounts & VK_SAMPLE_COUNT_32_BIT) {
+        vkMsaaSamples = VK_SAMPLE_COUNT_32_BIT;
+    } else if (vkSampleCounts & VK_SAMPLE_COUNT_16_BIT) {
+        vkMsaaSamples = VK_SAMPLE_COUNT_16_BIT;
+    } else if (vkSampleCounts & VK_SAMPLE_COUNT_8_BIT) {
+        vkMsaaSamples = VK_SAMPLE_COUNT_8_BIT;
+    } else if (vkSampleCounts & VK_SAMPLE_COUNT_4_BIT) {
+        vkMsaaSamples = VK_SAMPLE_COUNT_4_BIT;
+    } else if (vkSampleCounts & VK_SAMPLE_COUNT_2_BIT) {
+        vkMsaaSamples = VK_SAMPLE_COUNT_2_BIT;
+    }
 
     // Create a state for MSAA.
     VkPipelineMultisampleStateCreateInfo vkMultisampling{};
     vkMultisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     vkMultisampling.sampleShadingEnable = VK_FALSE;
-    vkMultisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    vkMultisampling.rasterizationSamples = vkMsaaSamples;
     vkMultisampling.minSampleShading = 1.0f;
     vkMultisampling.pSampleMask = nullptr;
     vkMultisampling.alphaToCoverageEnable = VK_FALSE;
     vkMultisampling.alphaToOneEnable = VK_FALSE;
 
     // ==========================================================================
-    //               STEP 19: Configure depth and stensil tests
+    //                  STEP 19: Create a resolve attachment
+    // ==========================================================================
+    // In order to implement MSAA we should introduce a so-called
+    // resolve attachment. The attachment has only 1 sample and while rendering
+    // a multi-sampled image will be resolved to this attachment.
+    // To make it work we shoukld specify the resolve attachment
+    // during subpass creation.
+    // ==========================================================================
+
+    // Description of an image for resolve attachment.
+    VkImageCreateInfo vkColorImageInfo{};
+    vkColorImageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    vkColorImageInfo.imageType = VK_IMAGE_TYPE_2D;
+    vkColorImageInfo.extent.width = vkSelectedExtent.width;
+    vkColorImageInfo.extent.height = vkSelectedExtent.height;
+    vkColorImageInfo.extent.depth = 1;
+    vkColorImageInfo.mipLevels = 1;
+    vkColorImageInfo.arrayLayers = 1;
+    vkColorImageInfo.format = vkSelectedFormat.format;
+    vkColorImageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    vkColorImageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    vkColorImageInfo.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    vkColorImageInfo.samples = vkMsaaSamples;
+    vkColorImageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    // Create an image for resolve attachment.
+    VkImage colorImage;
+    if (vkCreateImage(vkDevice, &vkColorImageInfo, nullptr, &colorImage) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create image!");
+    }
+
+    // Get memory requirements.
+    VkMemoryRequirements vkMemRequirements;
+    vkGetImageMemoryRequirements(vkDevice, colorImage, &vkMemRequirements);
+
+    // Description of memory allocation.
+    VkMemoryAllocateInfo vkColorImageAllocInfo{};
+    vkColorImageAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    vkColorImageAllocInfo.allocationSize = vkMemRequirements.size;
+    // Find memory type.
+    VkPhysicalDeviceMemoryProperties vkColorImageMemProperties;
+    vkGetPhysicalDeviceMemoryProperties(vkPhysicalDevice, &vkColorImageMemProperties);
+    uint32_t colorImageMemoryTypeInex = UINT32_MAX;
+    for (uint32_t i = 0; i < vkColorImageMemProperties.memoryTypeCount; i++) {
+        if ((vkMemRequirements.memoryTypeBits & (1 << i)) && (vkColorImageMemProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)) {
+            colorImageMemoryTypeInex = i;
+            break;
+        }
+    }
+    vkColorImageAllocInfo.memoryTypeIndex = colorImageMemoryTypeInex;
+
+    // Allocate memory for resolve attachment.
+    VkDeviceMemory colorImageMemory;
+    if (vkAllocateMemory(vkDevice, &vkColorImageAllocInfo, nullptr, &colorImageMemory) != VK_SUCCESS) {
+        std::cerr << "Failed to allocate image memory!" << std::endl;
+        abort();
+    }
+
+    // Bind the image to the memory.
+    vkBindImageMemory(vkDevice, colorImage, colorImageMemory, 0);
+
+    // Describe an image view for resolve attachment.
+    VkImageViewCreateInfo vkColorImageViewInfo{};
+    vkColorImageViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    vkColorImageViewInfo.image = colorImage;
+    vkColorImageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    vkColorImageViewInfo.format = vkSelectedFormat.format;
+    vkColorImageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    vkColorImageViewInfo.subresourceRange.baseMipLevel = 0;
+    vkColorImageViewInfo.subresourceRange.levelCount = 1;
+    vkColorImageViewInfo.subresourceRange.baseArrayLayer = 0;
+    vkColorImageViewInfo.subresourceRange.layerCount = 1;
+
+    // Create an image view for resolve attachment.
+    VkImageView colorImageView;
+    if (vkCreateImageView(vkDevice, &vkColorImageViewInfo, nullptr, &colorImageView) != VK_SUCCESS) {
+        std::cerr << "Failed to create texture image view!" << std::endl;
+        abort();
+    }
+
+    // Describe a resolve attachment.
+    VkAttachmentDescription colorAttachmentResolve{};
+    colorAttachmentResolve.format = vkSelectedFormat.format;
+    colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
+    colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    // Resolve attachment reference.
+    VkAttachmentReference colorAttachmentResolveRef{};
+    colorAttachmentResolveRef.attachment = 2;
+    colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    // ==========================================================================
+    //               STEP 20: Configure depth and stensil tests
     // ==========================================================================
     // Depth and stensil attachment is created and now we need to configure
     // these tests. In this example we use regular VK_COMPARE_OP_LESS depth
@@ -971,7 +1086,7 @@ int main()
     vkDepthStencil.back = VkStencilOpState{};
 
     // ==========================================================================
-    //                 STEP 20: Create a color blend state
+    //                 STEP 21: Create a color blend state
     // ==========================================================================
     // Color blend state describes how fragments are applied to the result
     // image. There might be options like mixing, but we switch off blending and
@@ -1004,7 +1119,7 @@ int main()
     vkColorBlending.blendConstants[3] = 0.0f;
 
     // ==========================================================================
-    //                   STEP 21: Create a color attachment
+    //                   STEP 22: Create a color attachment
     // ==========================================================================
     // Color attachment contains bytes of rendered image, so we should create
     // one in order to display something.
@@ -1013,13 +1128,15 @@ int main()
     // Descriptor of a color attachment.
     VkAttachmentDescription vkColorAttachment{};
     vkColorAttachment.format = vkSelectedFormat.format;
-    vkColorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    vkColorAttachment.samples = vkMsaaSamples;
     vkColorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     vkColorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     vkColorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     vkColorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     vkColorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    vkColorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    // Since we use MSAA, we should specify VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL here.
+    // If we disable MSAA, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR will be enough.
+    vkColorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     // Color attachment reference.
     VkAttachmentReference colorAttachmentRef{};
@@ -1027,7 +1144,7 @@ int main()
     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     // ==========================================================================
-    //            STEP 22: Create a depth and stensil attachment
+    //            STEP 23: Create a depth and stensil attachment
     // ==========================================================================
     // Depth and stensil attachment is used to support two tests:
     // - depth test - Makes sure that only the nearest fragment is displayed.
@@ -1040,7 +1157,7 @@ int main()
     // Descriptor of a depth attachment.
     VkAttachmentDescription vkDepthAttachment{};
     vkDepthAttachment.format = vkDepthFormat;
-    vkDepthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    vkDepthAttachment.samples = vkMsaaSamples;
     vkDepthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     vkDepthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     vkDepthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -1054,7 +1171,7 @@ int main()
     vkDepthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     // ==========================================================================
-    //                     STEP 23: Create a render pass
+    //                     STEP 24: Create a render pass
     // ==========================================================================
     // Render pass represents a collection of attachments, subpasses
     // and dependencies between the subpasses.
@@ -1069,6 +1186,7 @@ int main()
     vkSubpass.colorAttachmentCount = 1;
     vkSubpass.pColorAttachments = &colorAttachmentRef;
     vkSubpass.pDepthStencilAttachment = &vkDepthAttachmentRef;
+    vkSubpass.pResolveAttachments = &colorAttachmentResolveRef;
 
     // Define a subpass dependency.
     VkSubpassDependency vkDependency{};
@@ -1082,7 +1200,7 @@ int main()
     // Define a render pass and attach the subpass.
     VkRenderPassCreateInfo vkRenderPassInfo{};
     vkRenderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    std::array< VkAttachmentDescription, 2 > attachments = { vkColorAttachment, vkDepthAttachment };
+    std::array< VkAttachmentDescription, 3 > attachments = { vkColorAttachment, vkDepthAttachment, colorAttachmentResolve };
     vkRenderPassInfo.attachmentCount = static_cast< uint32_t >(attachments.size());
     vkRenderPassInfo.pAttachments = attachments.data();
     vkRenderPassInfo.subpassCount = 1;
@@ -1098,7 +1216,7 @@ int main()
     }
 
     // ==========================================================================
-    //                   STEP 24: Create a graphics pipeline
+    //                   STEP 25: Create a graphics pipeline
     // ==========================================================================
     // All stages prepared above should be combined into a graphics pipeline.
     // ==========================================================================
@@ -1145,7 +1263,7 @@ int main()
     }
 
     // ==========================================================================
-    //                 STEP 25: Create swap chain image views
+    //                 STEP 26: Create swap chain image views
     // ==========================================================================
     // After the swap chain is created, it contains Vulkan images that are
     // used to transfer rendered picture. In order to work with images
@@ -1186,7 +1304,7 @@ int main()
     }
 
     // ==========================================================================
-    //                  STEP 26: Create a depth buffer image
+    //                  STEP 27: Create a depth buffer image
     // ==========================================================================
     // In order to use a depth buffer, we should create an image.
     // Unlike swap buffer images, we need only one depth image and it should
@@ -1206,7 +1324,7 @@ int main()
     vkImageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
     vkImageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     vkImageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    vkImageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    vkImageInfo.samples = vkMsaaSamples;
     vkImageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
     // Create a depth image.
@@ -1248,7 +1366,7 @@ int main()
     vkBindImageMemory(vkDevice, vkDepthImage, vkDepthImageMemory, 0);
 
     // ==========================================================================
-    //                STEP 27: Create a depth buffer image view
+    //                STEP 28: Create a depth buffer image view
     // ==========================================================================
     // Similarly to swap buffer images, we need an image view to use it.
     // ==========================================================================
@@ -1273,7 +1391,7 @@ int main()
     }
 
     // ==========================================================================
-    //                     STEP 28: Create framebuffers
+    //                     STEP 29: Create framebuffers
     // ==========================================================================
     // Framebuffer refers to all attachments that are output of the rendering
     // process.
@@ -1285,9 +1403,10 @@ int main()
     for (size_t i = 0; i < vkSwapChainImageViews.size(); i++) {
         // We have only two attachments: color and depth.
         // Depth attachment is shared.
-        std::array< VkImageView, 2 > attachments = {
-            vkSwapChainImageViews[i],
-            vkDepthImageView
+        std::array< VkImageView, 3 > attachments = {
+            colorImageView,
+            vkDepthImageView,
+            vkSwapChainImageViews[i]
         };
 
         // Describe a framebuffer.
@@ -1308,7 +1427,7 @@ int main()
     }
 
     // ==========================================================================
-    //                    STEP 29: Create a vertex buffer
+    //                    STEP 30: Create a vertex buffer
     // ==========================================================================
     // Vertex buffer contains vertices of our model we want to pass
     // to the vertex shader.
@@ -1418,7 +1537,7 @@ int main()
     vkUnmapMemory(vkDevice, vkVertexBufferMemory);
 
     // ==========================================================================
-    //                      STEP 30: Create uniform buffers
+    //                      STEP 31: Create uniform buffers
     // ==========================================================================
     // Uniform buffer contains structures that are provided to shaders
     // as uniform variable. In our case this is a couple of matrices.
@@ -1493,7 +1612,7 @@ int main()
     }
 
     // ==========================================================================
-    //                  STEP 31: Create descriptopr sets
+    //                  STEP 32: Create descriptopr sets
     // ==========================================================================
     // In order to use uniforms, we should create a descriptor set for each
     // uniform buffer. Descriptors are allocated from the descriptor poll,
@@ -1562,7 +1681,7 @@ int main()
     }
 
     // ==========================================================================
-    //                    STEP 32: Create command buffers
+    //                    STEP 33: Create command buffers
     // ==========================================================================
     // Command buffers describe a set of rendering commands submitted to Vulkan.
     // We need to have one buffer per each image in the swap chain.
@@ -1651,7 +1770,7 @@ int main()
     }
 
     // ==========================================================================
-    //                   STEP 33: Synchronization primitives
+    //                   STEP 34: Synchronization primitives
     // ==========================================================================
     // Rendering and presentation are not synchronized. It means that if the
     // application renders frames faster then they are displayed, it will lead
@@ -1713,7 +1832,7 @@ int main()
     }
 
     // ==========================================================================
-    //                     STEP 34: Pick graphics queues
+    //                     STEP 35: Pick graphics queues
     // ==========================================================================
     // We have checked that the device supports all required queues, but now
     // we need to pick their handles explicitly.
@@ -1729,7 +1848,7 @@ int main()
     vkGetDeviceQueue(vkDevice, queueFamilyIndices.presentFamily.value(), 0, &vkPresentQueue);
 
     // ==========================================================================
-    //                         STEP 35: Main loop
+    //                         STEP 36: Main loop
     // ==========================================================================
     // Main loop performs event hanlding and executes rendering.
     // ==========================================================================
@@ -1825,7 +1944,7 @@ int main()
     }
 
     // ==========================================================================
-    //                     STEP 36: Deinitialization
+    //                     STEP 37: Deinitialization
     // ==========================================================================
     // Destroy all created Vukan structures in a reverse order.
     // ==========================================================================
@@ -1866,6 +1985,10 @@ int main()
     for (auto framebuffer : vkSwapChainFramebuffers) {
         vkDestroyFramebuffer(vkDevice, framebuffer, nullptr);
     }
+
+    vkDestroyImageView(vkDevice, colorImageView, nullptr);
+    vkDestroyImage(vkDevice, colorImage, nullptr);
+    vkFreeMemory(vkDevice, colorImageMemory, nullptr);
 
     // Destroy depth-stensil image and image view.
     vkDestroyImageView(vkDevice, vkDepthImageView, nullptr);
