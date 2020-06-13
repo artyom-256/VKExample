@@ -23,7 +23,7 @@
  *        a simple example of 3D graphics - rotating colored cube.          *
  *                                                                          *
  *    The example is designed to demonstrate pure sequence of actions       *
- *    requires to create a Vulkan 3D application, so all code is done       *
+ *    required to create a Vulkan 3D application, so all code is done       *
  *      as a large main() function and some duplication is present.         *
  *                                                                          *
  *   You may thing about how to split this into modules in order to make    *
@@ -85,7 +85,7 @@ constexpr const char* APPLICATION_NAME = "VKExample";
 /**
  * Maximal amount of frames processed at the same time.
  */
-const int MAX_FRAMES_IN_FLIGHT = 5;
+constexpr int MAX_FRAMES_IN_FLIGHT = 5;
 
 /**
  * Callback function that will be called each time a validation level produces a message.
@@ -172,7 +172,7 @@ int main()
     // ==========================================================================
 
     // Specify desired validation layers.
-    const std::vector<const char*> desiredValidationLayers = {
+    const std::vector< const char* > desiredValidationLayers = {
         "VK_LAYER_KHRONOS_validation"
     };
 
@@ -205,8 +205,8 @@ int main()
     // ==========================================================================
     //                STEP 4: Create a debug message callback
     // ==========================================================================
-    // Validation layers is a mechanism to hook Vulkan API calls, validate
-    // them and notify the user if something goes wrong.
+    // Debug message callback allows us to display errors and warnings if
+    // we do some mistake using Vulkan API.
     // ==========================================================================
 
     // Set up message logging.
@@ -231,7 +231,7 @@ int main()
     // ==========================================================================
     //                    STEP 5: Create a Vulkan instance
     // ==========================================================================
-    // The Vulkan instance is a starting point of using Vulkan API.
+    // Vulkan instance is a starting point of using Vulkan API.
     // Here we specify API version and which extensions to use.
     // ==========================================================================
 
@@ -254,7 +254,9 @@ int main()
     // Specify which extensions we need.
     vkCreateInfo.enabledExtensionCount = extensionsList.size();
     vkCreateInfo.ppEnabledExtensionNames = extensionsList.data();
+
 #ifdef DEBUG_MODE
+
     // Switch on all requested layers for debug mode.
     vkCreateInfo.enabledLayerCount = static_cast< uint32_t >(desiredValidationLayers.size());
     vkCreateInfo.ppEnabledLayerNames = desiredValidationLayers.data();
@@ -264,15 +266,18 @@ int main()
     // This will apply it for vkCreateInstance() and vkDestroyInstance() calls only,
     // so in any case debug messages should be switched on after the instance is created.
     vkCreateInfo.pNext = reinterpret_cast< VkDebugUtilsMessengerCreateInfoEXT* >(&vkMessangerCreateInfo);
+
 #else
+
     // Do not use layers in release mode.
     vkCreateInfo.enabledLayerCount = 0;
+
 #endif
 
     // Create a Vulkan instance and check its validity.
     VkInstance vkInstance;
     if (vkCreateInstance(&vkCreateInfo, nullptr, &vkInstance) != VK_SUCCESS) {
-        std::cerr << "Cannot creae a Vulkan instance!";
+        std::cerr << "Failed to creae a Vulkan instance!";
         abort();
     }
 
@@ -324,8 +329,8 @@ int main()
     // in the system - select one of them.
     // We are going to perform some tests and fetch device information that
     // we will need after. So, to not request this information twice,
-    // we will fill queueFamilyIndices and swapChainSupportDetails
-    // for the selected physical device and use them in further calls.
+    // we will fill some structures declared below for the selected
+    // physical device and use them in the rest of code.
     // ==========================================================================
 
     // --------------------------------------------------------------------------
@@ -369,7 +374,7 @@ int main()
         std::cerr << "No physical devices!" << std::endl;
         abort();
     }
-    std::vector<VkPhysicalDevice> vkDevices(vkDeviceCount);
+    std::vector< VkPhysicalDevice > vkDevices(vkDeviceCount);
     vkEnumeratePhysicalDevices(vkInstance, &vkDeviceCount, vkDevices.data());
 
     // Go through the list of physical device and select the first suitable one.
@@ -487,11 +492,12 @@ int main()
         bool depthFormatOk = (currentDepthFormat != VK_FORMAT_UNDEFINED);
 
         // Select the first suitable device.
-        if (vkPhysicalDevice == VK_NULL_HANDLE && allExtensionsAvailable && queuesOk && swapChainOk && depthFormatOk) {
+        if (allExtensionsAvailable && queuesOk && swapChainOk && depthFormatOk) {
             vkPhysicalDevice = device;
             queueFamilyIndices = currentDeviceQueueFamilyIndices;
             swapChainSupportDetails = currenDeviceSwapChainDetails;
             depthFormat = currentDepthFormat;
+            break;
         }
     }
 
@@ -632,7 +638,7 @@ int main()
     //                     STEP 11: Create a swap chain
     // ==========================================================================
     // Swap chain is a chain of rendered images that are going to be displayed
-    // on the screen. It is used to synchronize images rendering with refresh
+    // on the screen. It is used to synchronize image rendering with refresh
     // rate of the screen (VSync). If the application generates frames faster
     // than they are displayed, it should wait.
     // ==========================================================================
@@ -696,7 +702,7 @@ int main()
     //               STEP 12: Create a descriptor set layout
     // ==========================================================================
     // Descriptor set layout describes details of every uniform data binding
-    // using in shaders. This is needed if we want to provide uniform variables.
+    // using in shaders. This is needed if we want to use uniforms in shaders.
     // ==========================================================================
 
     VkDescriptorSetLayoutBinding uboLayoutBinding{};
@@ -743,7 +749,7 @@ int main()
     // Jump to the beginning of the file.
     vertexShaderFile.seekg(0);
     // Read shader code.
-    std::vector<char> vertexShaderBuffer(vertexFileSize);
+    std::vector< char > vertexShaderBuffer(vertexFileSize);
     vertexShaderFile.read(vertexShaderBuffer.data(), vertexFileSize);
     // Close the file.
     vertexShaderFile.close();
@@ -755,7 +761,7 @@ int main()
     // Create a vertex shader module.
     VkShaderModule vkVertexShaderModule;
     if (vkCreateShaderModule(vkDevice, &vkVertexShaderCreateInfo, nullptr, &vkVertexShaderModule) != VK_SUCCESS) {
-        std::cerr << "Cannot create a shader!" << std::endl;
+        std::cerr << "Failed to create a shader!" << std::endl;
         abort();
     }
 
@@ -786,7 +792,7 @@ int main()
     // Create a fragment shader module.
     VkShaderModule vkFragmentShaderModule;
     if (vkCreateShaderModule(vkDevice, &vkFragmentShaderCreateInfo, nullptr, &vkFragmentShaderModule) != VK_SUCCESS) {
-        std::cerr << "Cannot create a shader!" << std::endl;
+        std::cerr << "Failed to create a shader!" << std::endl;
         abort();
     }
 
@@ -1077,7 +1083,7 @@ int main()
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     std::array< VkAttachmentDescription, 2 > attachments = { colorAttachment, depthAttachment };
-    renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+    renderPassInfo.attachmentCount = static_cast< uint32_t >(attachments.size());
     renderPassInfo.pAttachments = attachments.data();
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;
@@ -1134,7 +1140,7 @@ int main()
     // Create a pipeline.
     VkPipeline graphicsPipeline;
     if (vkCreateGraphicsPipelines(vkDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
-        std::cerr << "Cannot create a graphics pipeline!" << std::endl;
+        std::cerr << "Failed to create a graphics pipeline!" << std::endl;
         abort();
     }
 
@@ -1206,7 +1212,7 @@ int main()
     // Create a depth image.
     VkImage depthImage;
     if (vkCreateImage(vkDevice, &imageInfo, nullptr, &depthImage) != VK_SUCCESS) {
-        std::cerr << "Cannot create a depth image!" << std::endl;
+        std::cerr << "Failed to create a depth image!" << std::endl;
         abort();
     }
 
@@ -1234,7 +1240,7 @@ int main()
     // Allocate memory for the depth image.
     VkDeviceMemory depthImageMemory;
     if (vkAllocateMemory(vkDevice, &memoryAllocInfo, nullptr, &depthImageMemory) != VK_SUCCESS) {
-        std::cerr << "Cannot allocate image memory!" << std::endl;
+        std::cerr << "Failed to allocate image memory!" << std::endl;
         abort();
     }
 
@@ -1262,7 +1268,7 @@ int main()
     // Create an image view.
     VkImageView depthImageView;
     if (vkCreateImageView(vkDevice, &viewInfo, nullptr, &depthImageView) != VK_SUCCESS) {
-        std::cerr << "Cannot create texture image view!" << std::endl;
+        std::cerr << "Failed to create a texture image view!" << std::endl;
         abort();
     }
 
@@ -1451,7 +1457,7 @@ int main()
 
         // Create a buffer.
         if (vkCreateBuffer(vkDevice, &bufferInfo, nullptr, &uniformBuffers[i]) != VK_SUCCESS) {
-            std::cerr << "Cannot create a buffer!" << std::endl;
+            std::cerr << "Failed to create a buffer!" << std::endl;
             abort();
         }
 
@@ -1478,7 +1484,7 @@ int main()
 
         // Allocate memory for the vertex buffer.
         if (vkAllocateMemory(vkDevice, &allocInfo, nullptr, &uniformBuffersMemory[i]) != VK_SUCCESS) {
-            std::cerr << "Cannot allocate buffer memory!" << std::endl;
+            std::cerr << "Failed to allocate buffer memory!" << std::endl;
             abort();
         }
 
@@ -1497,7 +1503,7 @@ int main()
     // Define a descriptor pool size. We need one descriptor set per swap chain image.
     VkDescriptorPoolSize poolSize{};
     poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSize.descriptorCount = static_cast<uint32_t>(vkSwapChainImages.size());
+    poolSize.descriptorCount = static_cast< uint32_t >(vkSwapChainImages.size());
 
     // Define descriptor pool.
     VkDescriptorPoolCreateInfo descriptorPoolInfo{};
@@ -1520,14 +1526,14 @@ int main()
     VkDescriptorSetAllocateInfo descriptSetAllocInfo{};
     descriptSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     descriptSetAllocInfo.descriptorPool = descriptorPool;
-    descriptSetAllocInfo.descriptorSetCount = static_cast<uint32_t>(vkSwapChainImages.size());
+    descriptSetAllocInfo.descriptorSetCount = static_cast< uint32_t >(vkSwapChainImages.size());
     descriptSetAllocInfo.pSetLayouts = layouts.data();
 
     // Create a descriptor set.
     std::vector< VkDescriptorSet > descriptorSets;
     descriptorSets.resize(vkSwapChainImages.size());
     if (vkAllocateDescriptorSets(vkDevice, &descriptSetAllocInfo, descriptorSets.data()) != VK_SUCCESS) {
-        std::cerr << "Cannot allocate descriptor set!" << std::endl;
+        std::cerr << "Failed to allocate descriptor set!" << std::endl;
         abort();
     }
 
@@ -1619,7 +1625,7 @@ int main()
         renderPassBeginInfo.framebuffer = swapChainFramebuffers[i];
         renderPassBeginInfo.renderArea.offset = {0, 0};
         renderPassBeginInfo.renderArea.extent = vkSelectedExtent;
-        renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+        renderPassBeginInfo.clearValueCount = static_cast< uint32_t >(clearValues.size());
         renderPassBeginInfo.pClearValues = clearValues.data();
 
         // Start render pass.
@@ -1633,7 +1639,7 @@ int main()
         // Bind descriptor sets for uniforms.
         vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
         // Draw command.
-        vkCmdDraw(commandBuffers[i], static_cast<uint32_t>(vertices.size()), 1, 0, 0);
+        vkCmdDraw(commandBuffers[i], static_cast< uint32_t >(vertices.size()), 1, 0, 0);
         // Finish render pass.
         vkCmdEndRenderPass(commandBuffers[i]);
 
@@ -1649,7 +1655,7 @@ int main()
     // ==========================================================================
     // Rendering and presentation are not synchronized. It means that if the
     // application renders frames faster then they are displayed, it will lead
-    // to memory overflow. In order to avoid this, we should wait if
+    // to memory overflow. In order to avoid this, we should wait in case
     // rendering goes too fast and the chain is overflown.
     // ==========================================================================
 
@@ -1687,9 +1693,9 @@ int main()
     // produced by GPU. This CPU-GPU synchronization is performed by fences.
 
     // Free fences for images running in parallel.
-    std::vector<VkFence> inFlightFences;
+    std::vector< VkFence > inFlightFences;
     // Buffer of feces, locked by the images running in parallel.
-    std::vector<VkFence> imagesInFlight;
+    std::vector< VkFence > imagesInFlight;
 
     // Describe a fence.
     VkFenceCreateInfo fenceInfo{};
