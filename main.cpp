@@ -22,6 +22,13 @@
  *     vertex buffers, shaders and uniform buffers in order to display      *
  *        a simple example of 3D graphics - rotating colored cube.          *
  *                                                                          *
+ *    The example is designed to demonstrate pure sequence of actions       *
+ *    requires to create a Vulkan 3D application, so all code is done       *
+ *      as a large main() function and some duplication is present.         *
+ *                                                                          *
+ *   You may thing about how to split this into modules in order to make    *
+ *                    an engine for your application.                       *
+ *                                                                          *
  *           The code is inspirited of the original tutorial:               *
  *                     https://vulkan-tutorial.com                          *
  *                                                                          *
@@ -72,9 +79,9 @@ constexpr int WINDOW_WIDTH = 800;
  */
 constexpr int WINDOW_HEIGHT = 800;
 /**
- * Window title.
+ * Application name.
  */
-constexpr const char* WINDOW_TITLE = "VKExample";
+constexpr const char* APPLICATION_NAME = "VKExample";
 /**
  * Maximal amount of frames processed at the same time.
  */
@@ -126,7 +133,7 @@ int main()
     // Make the window not resizable.
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     // Create a window instance.
-    GLFWwindow* glfwWindow = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE, nullptr, nullptr);
+    GLFWwindow* glfwWindow = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, APPLICATION_NAME, nullptr, nullptr);
 
     // ==========================================================================
     //                   STEP 2: Select Vulkan extensions
@@ -232,10 +239,10 @@ int main()
     VkApplicationInfo vkAppInfo {};
     // Information about your application.
     vkAppInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    vkAppInfo.pApplicationName = WINDOW_TITLE;
+    vkAppInfo.pApplicationName = APPLICATION_NAME;
     vkAppInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     // Information about your 3D engine (if applicable).
-    vkAppInfo.pEngineName = "No Engine";
+    vkAppInfo.pEngineName = APPLICATION_NAME;
     vkAppInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
     // Use v1.0 that is likely supported by the most of drivers.
     vkAppInfo.apiVersion = VK_API_VERSION_1_0;
@@ -737,41 +744,69 @@ int main()
     // could be found in Vulkan SDK.
     // ==========================================================================
 
-    // Create a helper function that loads a shader since we need two of them.
-    auto createShaderModule = [=](const char* fileName) {
-        // Open file.
-        std::ifstream file(fileName, std::ios::ate | std::ios::binary);
-        if (!file.is_open()) {
-            std::cerr << "Shader file " << fileName << " not found!" << std::endl;
-            abort();
-        }
-        // Calculate file size.
-        size_t fileSize = static_cast< size_t >(file.tellg());
-        // Jump to the beginning of the file.
-        file.seekg(0);
-        // Read shader code.
-        std::vector<char> buffer(fileSize);
-        file.read(buffer.data(), fileSize);
-        // Close the file.
-        file.close();
-        // Shader module creation info.
-        VkShaderModuleCreateInfo vkShaderCreateInfo{};
-        vkShaderCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        vkShaderCreateInfo.codeSize = buffer.size();
-        vkShaderCreateInfo.pCode = reinterpret_cast< const uint32_t* >(buffer.data());
-        // Create a shader module.
-        VkShaderModule vkShaderModule;
-        if (vkCreateShaderModule(vkDevice, &vkShaderCreateInfo, nullptr, &vkShaderModule) != VK_SUCCESS) {
-            std::cerr << "Cannot create a shader!" << std::endl;
-            abort();
-        }
-        // Return a shader module handle.
-        return vkShaderModule;
-    };
+    // --------------------------------------------------------------------------
+    // Create a vertex shader module.
+    // --------------------------------------------------------------------------
 
-    // Load two shaders for our simple example.
-    VkShaderModule vkVertexShaderModule = createShaderModule("main.vert.spv");
-    VkShaderModule vkFragmentShaderModule = createShaderModule("main.frag.spv");
+    // Open file.
+    std::ifstream vertexShaderFile("main.vert.spv", std::ios::ate | std::ios::binary);
+    if (!vertexShaderFile.is_open()) {
+        std::cerr << "Vertex shader file not found!" << std::endl;
+        abort();
+    }
+    // Calculate file size.
+    size_t vertexFileSize = static_cast< size_t >(vertexShaderFile.tellg());
+    // Jump to the beginning of the file.
+    vertexShaderFile.seekg(0);
+    // Read shader code.
+    std::vector<char> vertexShaderBuffer(vertexFileSize);
+    vertexShaderFile.read(vertexShaderBuffer.data(), vertexFileSize);
+    // Close the file.
+    vertexShaderFile.close();
+    // Shader module creation info.
+    VkShaderModuleCreateInfo vkVertexShaderCreateInfo{};
+    vkVertexShaderCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    vkVertexShaderCreateInfo.codeSize = vertexShaderBuffer.size();
+    vkVertexShaderCreateInfo.pCode = reinterpret_cast< const uint32_t* >(vertexShaderBuffer.data());
+    // Create a vertex shader module.
+    VkShaderModule vkVertexShaderModule;
+    if (vkCreateShaderModule(vkDevice, &vkVertexShaderCreateInfo, nullptr, &vkVertexShaderModule) != VK_SUCCESS) {
+        std::cerr << "Cannot create a shader!" << std::endl;
+        abort();
+    }
+
+    // --------------------------------------------------------------------------
+    // Create a fragment shader module.
+    // --------------------------------------------------------------------------
+
+    // Open file.
+    std::ifstream fragmentShaderFile("main.frag.spv", std::ios::ate | std::ios::binary);
+    if (!fragmentShaderFile.is_open()) {
+        std::cerr << "Fragment shader file not found!" << std::endl;
+        abort();
+    }
+    // Calculate file size.
+    size_t fragmentFileSize = static_cast< size_t >(fragmentShaderFile.tellg());
+    // Jump to the beginning of the file.
+    fragmentShaderFile.seekg(0);
+    // Read shader code.
+    std::vector< char > fragmentShaderBuffer(fragmentFileSize);
+    fragmentShaderFile.read(fragmentShaderBuffer.data(), fragmentFileSize);
+    // Close the file.
+    fragmentShaderFile.close();
+    // Shader module creation info.
+    VkShaderModuleCreateInfo vkFragmentShaderCreateInfo{};
+    vkFragmentShaderCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    vkFragmentShaderCreateInfo.codeSize = fragmentShaderBuffer.size();
+    vkFragmentShaderCreateInfo.pCode = reinterpret_cast< const uint32_t* >(fragmentShaderBuffer.data());
+    // Create a fragment shader module.
+    VkShaderModule vkFragmentShaderModule;
+    if (vkCreateShaderModule(vkDevice, &vkFragmentShaderCreateInfo, nullptr, &vkFragmentShaderModule) != VK_SUCCESS) {
+        std::cerr << "Cannot create a shader!" << std::endl;
+        abort();
+    }
+
+    // --------------------------------------------------------------------------
 
     // Create a pipeline stage for a vertex shader.
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
@@ -1119,34 +1154,6 @@ int main()
         abort();
     }
 
-
-
-
-
-
-
-
-
-
-
-    auto findMemoryType = [=](uint32_t typeFilter, VkMemoryPropertyFlags properties) {
-        VkPhysicalDeviceMemoryProperties memProperties;
-        vkGetPhysicalDeviceMemoryProperties(vkPhysicalDevice, &memProperties);
-
-        for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-            if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-                return i;
-            }
-        }
-
-        std::cerr << "No suitable memory type!" << std::endl;
-        abort();
-    };
-
-
-
-
-
     // ==========================================================================
     // STEP 5: Create swap chain image views
     // ==========================================================================
@@ -1227,7 +1234,18 @@ int main()
     VkMemoryAllocateInfo memoryAllocInfo{};
     memoryAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     memoryAllocInfo.allocationSize = memRequirements.size;
-    memoryAllocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    // Find a suitable memory type.
+    uint32_t memTypeIndex = UINT32_MAX;
+    VkPhysicalDeviceMemoryProperties memProperties;
+    vkGetPhysicalDeviceMemoryProperties(vkPhysicalDevice, &memProperties);
+    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+        if ((memRequirements.memoryTypeBits & (1 << i)) &&
+                (memProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)) {
+            memTypeIndex = i;
+            break;
+        }
+    }
+    memoryAllocInfo.memoryTypeIndex = memTypeIndex;
 
     // Allocate memory for the depth image.
     VkDeviceMemory depthImageMemory;
@@ -1380,8 +1398,19 @@ int main()
     VkMemoryAllocateInfo vertexBufferAllocInfo{};
     vertexBufferAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     vertexBufferAllocInfo.allocationSize = vertexBufferMemRequirements.size;
-    vertexBufferAllocInfo.memoryTypeIndex = findMemoryType(vertexBufferMemRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
+    // Find a suitable memory type.
+    uint32_t bufferMemTypeIndex = UINT32_MAX;
+    VkMemoryPropertyFlags bufferMemFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    VkPhysicalDeviceMemoryProperties bufferMemProperties;
+    vkGetPhysicalDeviceMemoryProperties(vkPhysicalDevice, &bufferMemProperties);
+    for (uint32_t i = 0; i < bufferMemProperties.memoryTypeCount; i++) {
+        if ((vertexBufferMemRequirements.memoryTypeBits & (1 << i)) &&
+                (bufferMemProperties.memoryTypes[i].propertyFlags & bufferMemFlags) == bufferMemFlags) {
+            bufferMemTypeIndex = i;
+            break;
+        }
+    }
+    vertexBufferAllocInfo.memoryTypeIndex = bufferMemTypeIndex;
     // Allocate memory for the vertex buffer.
     VkDeviceMemory vertexBufferMemory;
     if (vkAllocateMemory(vkDevice, &vertexBufferAllocInfo, nullptr, &vertexBufferMemory) != VK_SUCCESS) {
@@ -1450,7 +1479,18 @@ int main()
         VkMemoryAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        // Select suitable memory type.
+        uint32_t memTypeIndex = UINT32_MAX;
+        VkMemoryPropertyFlags memFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        VkPhysicalDeviceMemoryProperties memProperties;
+        vkGetPhysicalDeviceMemoryProperties(vkPhysicalDevice, &memProperties);
+        for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+            if ((memRequirements.memoryTypeBits & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & memFlags) == memFlags) {
+                memTypeIndex = i;
+                break;
+            }
+        }
+        allocInfo.memoryTypeIndex = memTypeIndex;
 
         // Allocate memory for the vertex buffer.
         if (vkAllocateMemory(vkDevice, &allocInfo, nullptr, &uniformBuffersMemory[i]) != VK_SUCCESS) {
