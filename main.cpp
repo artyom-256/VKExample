@@ -340,6 +340,8 @@ int main()
         std::vector< VkPresentModeKHR > presentModes;
     };
     SwapChainSupportDetails swapChainSupportDetails;
+    // Here we keep a selected format for z-buffer.
+    VkFormat depthFormat = VK_FORMAT_UNDEFINED;
 
     // Desired extensions that should be supported by the graphical card.
     const std::vector< const char* > desiredDeviceExtensions = {
@@ -439,11 +441,30 @@ int main()
         bool swapChainOk = !currenDeviceSwapChainDetails.formats.empty() &&
                            !currenDeviceSwapChainDetails.presentModes.empty();
 
+        // Select a format of z-buffer.
+        // We have a list of formats we need to test and pick one.
+        std::vector< VkFormat > depthFormatCandidates = {
+            VK_FORMAT_D32_SFLOAT,
+            VK_FORMAT_D32_SFLOAT_S8_UINT,
+            VK_FORMAT_D24_UNORM_S8_UINT
+        };
+        VkFormat currentDepthFormat = VK_FORMAT_UNDEFINED;
+        for (VkFormat format : depthFormatCandidates) {
+            VkFormatProperties props;
+            vkGetPhysicalDeviceFormatProperties(device, format, &props);
+            if (props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) {
+                currentDepthFormat = format;
+                break;
+            }
+        }
+        bool depthFormatOk = (currentDepthFormat != VK_FORMAT_UNDEFINED);
+
         // Select the first suitable device.
-        if (vkPhysicalDevice == VK_NULL_HANDLE && allExtensionsAvailable && queuesOk && swapChainOk) {
+        if (vkPhysicalDevice == VK_NULL_HANDLE && allExtensionsAvailable && queuesOk && swapChainOk && depthFormatOk) {
             vkPhysicalDevice = device;
             queueFamilyIndices = currentDeviceQueueFamilyIndices;
             swapChainSupportDetails = currenDeviceSwapChainDetails;
+            depthFormat = currentDepthFormat;
         }
     }
 
@@ -728,23 +749,45 @@ int main()
         // Close the file.
         file.close();
         // Shader module creation info.
-        VkShaderModuleCreateInfo vkVertexShaderCreateInfo{};
-        vkVertexShaderCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        vkVertexShaderCreateInfo.codeSize = buffer.size();
-        vkVertexShaderCreateInfo.pCode = reinterpret_cast< const uint32_t* >(buffer.data());
+        VkShaderModuleCreateInfo vkShaderCreateInfo{};
+        vkShaderCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        vkShaderCreateInfo.codeSize = buffer.size();
+        vkShaderCreateInfo.pCode = reinterpret_cast< const uint32_t* >(buffer.data());
         // Create a shader module.
-        VkShaderModule vkVertexShaderModule;
-        if (vkCreateShaderModule(vkDevice, &vkVertexShaderCreateInfo, nullptr, &vkVertexShaderModule) != VK_SUCCESS) {
-            std::cerr << "Cannot create a vertex shader!";
+        VkShaderModule vkShaderModule;
+        if (vkCreateShaderModule(vkDevice, &vkShaderCreateInfo, nullptr, &vkShaderModule) != VK_SUCCESS) {
+            std::cerr << "Cannot create a shader!" << std::endl;
             abort();
         }
         // Return a shader module handle.
-        return vkVertexShaderModule;
+        return vkShaderModule;
     };
 
     // Load two shaders for our simple example.
     VkShaderModule vkVertexShaderModule = createShaderModule("main.vert.spv");
     VkShaderModule vkFragmentShaderModule = createShaderModule("main.frag.spv");
+
+    // Create a pipeline stage for a vertex shader.
+    VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+    vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+    vertShaderStageInfo.module = vkVertexShaderModule;
+    // main function name
+    vertShaderStageInfo.pName = "main";
+
+    // Create a pipeline stage for a fragment shader.
+    VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+    fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    fragShaderStageInfo.module = vkFragmentShaderModule;
+    // main function name
+    fragShaderStageInfo.pName = "main";
+
+    // Put both shader modules into an array.
+    std::array< VkPipelineShaderStageCreateInfo, 2 > shaderStages {
+        vertShaderStageInfo,
+        fragShaderStageInfo
+    };
 
     // ==========================================================================
     // STEP 5: Create a uniform buffer
@@ -984,16 +1027,14 @@ int main()
     colorBlending.blendConstants[2] = 0.0f;
     colorBlending.blendConstants[3] = 0.0f;
 
+    // ==========================================================================
+    // STEP 5: Create a color attachment
+    // ==========================================================================
+    // Color attachment contains bytes of rendered image, so we should create
+    // one in order to display something.
+    // ==========================================================================
 
-
-
-
-
-
-
-
-
-
+    // Descriptor of a color attachment.
     VkAttachmentDescription colorAttachment{};
     colorAttachment.format = vkSelectedFormat.format;
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -1004,47 +1045,23 @@ int main()
     colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-
+    // Color attachment reference.
     VkAttachmentReference colorAttachmentRef{};
     colorAttachmentRef.attachment = 0;
     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+    // ==========================================================================
+    // STEP 5: Create a depth and stensil attachment
+    // ==========================================================================
+    // Depth and stensil attachment is used to support two tests:
+    // - depth test - Makes sure that only the nearest fragment is displayed.
+    // - stensil test - Allows to cut some fragments depending on values of
+    //                  the stensil buffer.
+    // Although in this example we only need a depth test, both of them use
+    // the same attachment.
+    // ==========================================================================
 
-
-
-
-
-
-
-
-    auto findSupportedFormat = [=](const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
-        for (VkFormat format : candidates) {
-            VkFormatProperties props;
-            vkGetPhysicalDeviceFormatProperties(vkPhysicalDevice, format, &props);
-            if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
-                return format;
-            } else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
-                return format;
-            }
-        }
-
-        std::cerr << "Cannot find a supported format for Z-buffer" << std::endl;
-        abort();
-    };
-
-    VkFormat depthFormat = findSupportedFormat(
-        { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
-    );
-
-
-
-
-
-
-
-
+    // Descriptor of a depth attachment.
     VkAttachmentDescription depthAttachment{};
     depthAttachment.format = depthFormat;
     depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -1055,78 +1072,18 @@ int main()
     depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
+    // Depth attachment reference.
     VkAttachmentReference depthAttachmentRef{};
     depthAttachmentRef.attachment = 1;
     depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-
-
-
-
-
-
-    VkSubpassDescription subpass{};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
-    subpass.pDepthStencilAttachment = &depthAttachmentRef;
-
-
-
-
-
-
-    VkRenderPass renderPass;
-
-    std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
-
-    VkRenderPassCreateInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-    renderPassInfo.pAttachments = attachments.data();
-    renderPassInfo.subpassCount = 1;
-    renderPassInfo.pSubpasses = &subpass;
-
-    VkSubpassDependency dependency{};
-    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-    dependency.dstSubpass = 0;
-    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.srcAccessMask = 0;
-    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-    renderPassInfo.dependencyCount = 1;
-    renderPassInfo.pDependencies = &dependency;
-
-    if (vkCreateRenderPass(vkDevice, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
-        std::cerr << "Failed to create a render pass!" << std::endl;
-        abort();
-    }
-
-
-
-
-
-
-    VkPipelineLayout pipelineLayout;
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
-    pipelineLayoutInfo.pushConstantRangeCount = 0;
-    pipelineLayoutInfo.pPushConstantRanges = nullptr;
-
-    if (vkCreatePipelineLayout(vkDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
-        std::cerr << "Failed to creare a pipeline layout!" << std::endl;
-        abort();
-    }
-
-
-
-
-
-
+    // ==========================================================================
+    // STEP 5: Configure depth and stensil tests
+    // ==========================================================================
+    // Depth and stensil attachment is created and now we need to configure
+    // these tests. In this example we use regular VK_COMPARE_OP_LESS depth
+    // operation and disable stensil test.
+    // ==========================================================================
 
     VkPipelineDepthStencilStateCreateInfo depthStencil{};
     depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
@@ -1140,45 +1097,76 @@ int main()
     depthStencil.front = VkStencilOpState{};
     depthStencil.back = VkStencilOpState{};
 
+    // ==========================================================================
+    // STEP 5: Create a render pass
+    // ==========================================================================
+    // Render pass represents a collection of attachments, subpasses
+    // and dependencies between the subpasses.
+    // Subpasses allow to organize rendering process as a chain of operations.
+    // Each operation is applied to the result of the previous one.
+    // In the example we only need a single subpass.
+    // ==========================================================================
 
+    // Define a subpass and include both attachments (color and depth-stensil).
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &colorAttachmentRef;
+    subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
+    // Define a subpass dependency.
+    VkSubpassDependency dependency{};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask = 0;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
+    // Define a render pass and attach the subpass.
+    VkRenderPassCreateInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    std::array< VkAttachmentDescription, 2 > attachments = { colorAttachment, depthAttachment };
+    renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+    renderPassInfo.pAttachments = attachments.data();
+    renderPassInfo.subpassCount = 1;
+    renderPassInfo.pSubpasses = &subpass;
+    renderPassInfo.dependencyCount = 1;
+    renderPassInfo.pDependencies = &dependency;
 
+    // Create a render pass.
+    VkRenderPass renderPass;
+    if (vkCreateRenderPass(vkDevice, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
+        std::cerr << "Failed to create a render pass!" << std::endl;
+        abort();
+    }
 
+    // ==========================================================================
+    // STEP 5: Create a graphics pipeline
+    // ==========================================================================
+    // All stages prepared above should be combined into a graphics pipeline.
+    // ==========================================================================
 
+    // Define a pipeline layout.
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = 1;
+    pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+    pipelineLayoutInfo.pushConstantRangeCount = 0;
+    pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
+    // Create a pipeline layout.
+    VkPipelineLayout pipelineLayout;
+    if (vkCreatePipelineLayout(vkDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
+        std::cerr << "Failed to creare a pipeline layout!" << std::endl;
+        abort();
+    }
 
-
-    VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
-    vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-
-    vertShaderStageInfo.module = vkVertexShaderModule;
-    vertShaderStageInfo.pName = "main"; // main function name
-
-
-    VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-    fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-    fragShaderStageInfo.module = vkFragmentShaderModule;
-    fragShaderStageInfo.pName = "main"; // main function name
-
-
-    VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
-
-
-
-
-
-
-
-
-
+    // Define a pipeline and provide all stages created above.
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineInfo.stageCount = 2;
-    pipelineInfo.pStages = shaderStages;
+    pipelineInfo.stageCount = shaderStages.size();
+    pipelineInfo.pStages = shaderStages.data();
     pipelineInfo.pVertexInputState = &vertexInputInfo;
     pipelineInfo.pInputAssemblyState = &inputAssembly;
     pipelineInfo.pViewportState = &viewportState;
@@ -1193,8 +1181,7 @@ int main()
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
 
-
-
+    // Create a pipeline.
     VkPipeline graphicsPipeline;
     if (vkCreateGraphicsPipelines(vkDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
         std::cerr << "Cannot create a graphics pipeline!" << std::endl;
