@@ -14,7 +14,7 @@
  *  GNU General Public License for more details.                            *
  *                                                                          *
  *  You should have received a copy of the GNU General Public License       *
- *  along with this program.  If not, see <https://www.gnu.org/licenses/>.  *
+ *  along with this program. If not, see <https://www.gnu.org/licenses/>.   *
  *                                                                          *
  ****************************************************************************
  *                                                                          *
@@ -702,6 +702,32 @@ int main()
     }
 
     // ==========================================================================
+    // STEP 5: Create a descriptor set layout
+    // ==========================================================================
+    // Descriptor set layout describes details of every uniform data binding
+    // using in shaders. This is needed if we want to provide uniform variables.
+    // ==========================================================================
+
+    VkDescriptorSetLayoutBinding uboLayoutBinding{};
+    uboLayoutBinding.binding = 0;
+    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    uboLayoutBinding.descriptorCount = 1;
+    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    uboLayoutBinding.pImmutableSamplers = nullptr;
+
+    VkDescriptorSetLayout descriptorSetLayout;
+
+    VkDescriptorSetLayoutCreateInfo layoutInfo{};
+    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.bindingCount = 1;
+    layoutInfo.pBindings = &uboLayoutBinding;
+
+    if (vkCreateDescriptorSetLayout(vkDevice, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+        std::cerr << "Failed to create a descriptor set layout" << std::endl;
+        abort();
+    }
+
+    // ==========================================================================
     // STEP 5: Load shaders
     // ==========================================================================
     // Shaders are special code that is executed directly on GPU.
@@ -770,32 +796,6 @@ int main()
     };
 
     // ==========================================================================
-    // STEP 5: Create a uniform buffer
-    // ==========================================================================
-    // Uniform buffers are used to provide variables to shaders.
-    // For example, in our case such variables are transformation matrices.
-    // ==========================================================================
-
-    VkDescriptorSetLayoutBinding uboLayoutBinding{};
-    uboLayoutBinding.binding = 0;
-    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uboLayoutBinding.descriptorCount = 1;
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    uboLayoutBinding.pImmutableSamplers = nullptr;
-
-    VkDescriptorSetLayout descriptorSetLayout;
-
-    VkDescriptorSetLayoutCreateInfo layoutInfo{};
-    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = 1;
-    layoutInfo.pBindings = &uboLayoutBinding;
-
-    if (vkCreateDescriptorSetLayout(vkDevice, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
-        std::cerr << "Failed to create a descriptor set layout" << std::endl;
-        abort();
-    }
-
-    // ==========================================================================
     // STEP 5: Create a vertex buffer
     // ==========================================================================
     // Vertex buffers provide vertices to shaders.
@@ -809,55 +809,6 @@ int main()
         glm::vec3 pos;
         // Color of the vertex.
         glm::vec3 color;
-    };
-
-    // Create a cube specifying its vertices.
-    // Each triplet of vertices represent one triangle.
-    // We do not use index buffer, so some vertices are duplicated.
-    // Each plane has its own color.
-    std::vector< Vertex > vertices
-    {
-        { { -0.5f, -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
-        { { -0.5f,  0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
-        { {  0.5f, -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
-        { {  0.5f,  0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
-        { {  0.5f, -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
-        { { -0.5f,  0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
-
-        { { -0.5f, -0.5f, -0.5f }, { 1.0f, 1.0f, 0.0f } },
-        { { -0.5f, -0.5f,  0.5f }, { 1.0f, 1.0f, 0.0f } },
-        { { -0.5f,  0.5f, -0.5f }, { 1.0f, 1.0f, 0.0f } },
-        { { -0.5f,  0.5f,  0.5f }, { 1.0f, 1.0f, 0.0f } },
-        { { -0.5f,  0.5f, -0.5f }, { 1.0f, 1.0f, 0.0f } },
-        { { -0.5f, -0.5f,  0.5f }, { 1.0f, 1.0f, 0.0f } },
-
-        { {  0.5f, -0.5f,  0.5f }, { 1.0f, 1.0f, 1.0f } },
-        { {  0.5f, -0.5f, -0.5f }, { 1.0f, 1.0f, 1.0f } },
-        { {  0.5f,  0.5f,  0.5f }, { 1.0f, 1.0f, 1.0f } },
-        { {  0.5f,  0.5f, -0.5f }, { 1.0f, 1.0f, 1.0f } },
-        { {  0.5f,  0.5f,  0.5f }, { 1.0f, 1.0f, 1.0f } },
-        { {  0.5f, -0.5f, -0.5f }, { 1.0f, 1.0f, 1.0f } },
-
-        { { -0.5f,  0.5f,  0.5f }, { 0.0f, 1.0f, 0.0f } },
-        { { -0.5f, -0.5f,  0.5f }, { 0.0f, 1.0f, 0.0f } },
-        { {  0.5f,  0.5f,  0.5f }, { 0.0f, 1.0f, 0.0f } },
-        { {  0.5f, -0.5f,  0.5f }, { 0.0f, 1.0f, 0.0f } },
-        { {  0.5f,  0.5f,  0.5f }, { 0.0f, 1.0f, 0.0f } },
-        { { -0.5f, -0.5f,  0.5f }, { 0.0f, 1.0f, 0.0f } },
-
-        { {  0.5f,  0.5f, -0.5f }, { 1.0f, 0.0f, 1.0f } },
-        { { -0.5f,  0.5f, -0.5f }, { 1.0f, 0.0f, 1.0f } },
-        { {  0.5f,  0.5f,  0.5f }, { 1.0f, 0.0f, 1.0f } },
-        { { -0.5f,  0.5f,  0.5f }, { 1.0f, 0.0f, 1.0f } },
-        { {  0.5f,  0.5f,  0.5f }, { 1.0f, 0.0f, 1.0f } },
-        { { -0.5f,  0.5f, -0.5f }, { 1.0f, 0.0f, 1.0f } },
-
-        { { -0.5f, -0.5f,  0.5f }, { 0.0f, 1.0f, 1.0f } },
-        { { -0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, 1.0f } },
-        { {  0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, 1.0f } },
-        { { -0.5f, -0.5f,  0.5f }, { 0.0f, 1.0f, 1.0f } },
-        { {  0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, 1.0f } },
-        { {  0.5f, -0.5f,  0.5f }, { 0.0f, 1.0f, 1.0f } },
     };
 
     // Binding descriptor specifies how our array is splited into vertices.
@@ -975,6 +926,26 @@ int main()
     multisampling.alphaToOneEnable = VK_FALSE;
 
     // ==========================================================================
+    // STEP 5: Configure depth and stensil tests
+    // ==========================================================================
+    // Depth and stensil attachment is created and now we need to configure
+    // these tests. In this example we use regular VK_COMPARE_OP_LESS depth
+    // operation and disable stensil test.
+    // ==========================================================================
+
+    VkPipelineDepthStencilStateCreateInfo depthStencil{};
+    depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencil.depthTestEnable = VK_TRUE;
+    depthStencil.depthWriteEnable = VK_TRUE;
+    depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+    depthStencil.depthBoundsTestEnable = VK_FALSE;
+    depthStencil.minDepthBounds = 0.0f;
+    depthStencil.maxDepthBounds = 1.0f;
+    depthStencil.stencilTestEnable = VK_FALSE;
+    depthStencil.front = VkStencilOpState{};
+    depthStencil.back = VkStencilOpState{};
+
+    // ==========================================================================
     // STEP 5: Create a pipeline color blend
     // ==========================================================================
     // Color blend state describes how fragments are applied to the result
@@ -1056,26 +1027,6 @@ int main()
     VkAttachmentReference depthAttachmentRef{};
     depthAttachmentRef.attachment = 1;
     depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    // ==========================================================================
-    // STEP 5: Configure depth and stensil tests
-    // ==========================================================================
-    // Depth and stensil attachment is created and now we need to configure
-    // these tests. In this example we use regular VK_COMPARE_OP_LESS depth
-    // operation and disable stensil test.
-    // ==========================================================================
-
-    VkPipelineDepthStencilStateCreateInfo depthStencil{};
-    depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    depthStencil.depthTestEnable = VK_TRUE;
-    depthStencil.depthWriteEnable = VK_TRUE;
-    depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
-    depthStencil.depthBoundsTestEnable = VK_FALSE;
-    depthStencil.minDepthBounds = 0.0f;
-    depthStencil.maxDepthBounds = 1.0f;
-    depthStencil.stencilTestEnable = VK_FALSE;
-    depthStencil.front = VkStencilOpState{};
-    depthStencil.back = VkStencilOpState{};
 
     // ==========================================================================
     // STEP 5: Create a render pass
@@ -1355,6 +1306,56 @@ int main()
     // to the vertex shader.
     // ==========================================================================
 
+    // Create a cube specifying its vertices.
+    // Each triplet of vertices represent one triangle.
+    // We do not use index buffer, so some vertices are duplicated.
+    // Each plane has its own color.
+    std::vector< Vertex > vertices
+    {
+        { { -0.5f, -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
+        { { -0.5f,  0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
+        { {  0.5f, -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
+        { {  0.5f,  0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
+        { {  0.5f, -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
+        { { -0.5f,  0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
+
+        { { -0.5f, -0.5f, -0.5f }, { 1.0f, 1.0f, 0.0f } },
+        { { -0.5f, -0.5f,  0.5f }, { 1.0f, 1.0f, 0.0f } },
+        { { -0.5f,  0.5f, -0.5f }, { 1.0f, 1.0f, 0.0f } },
+        { { -0.5f,  0.5f,  0.5f }, { 1.0f, 1.0f, 0.0f } },
+        { { -0.5f,  0.5f, -0.5f }, { 1.0f, 1.0f, 0.0f } },
+        { { -0.5f, -0.5f,  0.5f }, { 1.0f, 1.0f, 0.0f } },
+
+        { {  0.5f, -0.5f,  0.5f }, { 1.0f, 1.0f, 1.0f } },
+        { {  0.5f, -0.5f, -0.5f }, { 1.0f, 1.0f, 1.0f } },
+        { {  0.5f,  0.5f,  0.5f }, { 1.0f, 1.0f, 1.0f } },
+        { {  0.5f,  0.5f, -0.5f }, { 1.0f, 1.0f, 1.0f } },
+        { {  0.5f,  0.5f,  0.5f }, { 1.0f, 1.0f, 1.0f } },
+        { {  0.5f, -0.5f, -0.5f }, { 1.0f, 1.0f, 1.0f } },
+
+        { { -0.5f,  0.5f,  0.5f }, { 0.0f, 1.0f, 0.0f } },
+        { { -0.5f, -0.5f,  0.5f }, { 0.0f, 1.0f, 0.0f } },
+        { {  0.5f,  0.5f,  0.5f }, { 0.0f, 1.0f, 0.0f } },
+        { {  0.5f, -0.5f,  0.5f }, { 0.0f, 1.0f, 0.0f } },
+        { {  0.5f,  0.5f,  0.5f }, { 0.0f, 1.0f, 0.0f } },
+        { { -0.5f, -0.5f,  0.5f }, { 0.0f, 1.0f, 0.0f } },
+
+        { {  0.5f,  0.5f, -0.5f }, { 1.0f, 0.0f, 1.0f } },
+        { { -0.5f,  0.5f, -0.5f }, { 1.0f, 0.0f, 1.0f } },
+        { {  0.5f,  0.5f,  0.5f }, { 1.0f, 0.0f, 1.0f } },
+        { { -0.5f,  0.5f,  0.5f }, { 1.0f, 0.0f, 1.0f } },
+        { {  0.5f,  0.5f,  0.5f }, { 1.0f, 0.0f, 1.0f } },
+        { { -0.5f,  0.5f, -0.5f }, { 1.0f, 0.0f, 1.0f } },
+
+        { { -0.5f, -0.5f,  0.5f }, { 0.0f, 1.0f, 1.0f } },
+        { { -0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, 1.0f } },
+        { {  0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, 1.0f } },
+        { { -0.5f, -0.5f,  0.5f }, { 0.0f, 1.0f, 1.0f } },
+        { {  0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, 1.0f } },
+        { {  0.5f, -0.5f,  0.5f }, { 0.0f, 1.0f, 1.0f } },
+    };
+
+    // Calculate buffer size.
     VkDeviceSize vertexBufferSize = sizeof(vertices[0]) * vertices.size();
 
     // Describe a buffer.
