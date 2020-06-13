@@ -571,23 +571,7 @@ int main()
     }
 
     // ==========================================================================
-    // STEP 10: Pick graphics queues
-    // ==========================================================================
-    // We have checked that the device supports all required queues, but now
-    // we need to pick their handles explicitly.
-    // ==========================================================================
-
-    // Pick a graphics queue.
-    VkQueue vkGraphicsQueue;
-    vkGetDeviceQueue(vkDevice, queueFamilyIndices.graphicsFamily.value(), 0, &vkGraphicsQueue);
-
-    // Pick a present queue.
-    // It might happen that both handles refer to the same queue.
-    VkQueue vkPresentQueue;
-    vkGetDeviceQueue(vkDevice, queueFamilyIndices.presentFamily.value(), 0, &vkPresentQueue);
-
-    // ==========================================================================
-    // STEP 5: Select surface configuration
+    //                   STEP 10: Select surface configuration
     // ==========================================================================
     // We should select surface format, present mode and extent (size) from
     // the proposed values. They will be used in furhter calls.
@@ -645,7 +629,7 @@ int main()
     }
 
     // ==========================================================================
-    // STEP 5: Create a swap chain
+    //                     STEP 11: Create a swap chain
     // ==========================================================================
     // Swap chain is a chain of rendered images that are going to be displayed
     // on the screen. It is used to synchronize images rendering with refresh
@@ -709,7 +693,7 @@ int main()
     }
 
     // ==========================================================================
-    // STEP 5: Create a descriptor set layout
+    //               STEP 12: Create a descriptor set layout
     // ==========================================================================
     // Descriptor set layout describes details of every uniform data binding
     // using in shaders. This is needed if we want to provide uniform variables.
@@ -735,7 +719,7 @@ int main()
     }
 
     // ==========================================================================
-    // STEP 5: Load shaders
+    //                        STEP 13: Load shaders
     // ==========================================================================
     // Shaders are special code that is executed directly on GPU.
     // For our simple example we use vertex and fragment shaders.
@@ -831,7 +815,7 @@ int main()
     };
 
     // ==========================================================================
-    // STEP 5: Create a vertex buffer
+    //                    STEP 14: Create a vertex buffer
     // ==========================================================================
     // Vertex buffers provide vertices to shaders.
     // In our case this is a geometry of a cube.
@@ -877,7 +861,7 @@ int main()
     vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
     // ==========================================================================
-    // STEP 5: Create a pipeline assembly state
+    //               STEP 15: Create a pipeline assembly state
     // ==========================================================================
     // Pipeline assembly state describes a geometry of the input data.
     // In our case the input is a list of triangles.
@@ -889,7 +873,7 @@ int main()
     inputAssembly.primitiveRestartEnable = VK_FALSE;
 
     // ==========================================================================
-    // STEP 5: Create a viewport and scissors
+    //                 STEP 16: Create a viewport and scissors
     // ==========================================================================
     // Viewport is a region of a framebuffer that will be used for renderring.
     // Scissors define if some part of rendered image should be cut.
@@ -920,7 +904,7 @@ int main()
     viewportState.pScissors = &scissor;
 
     // ==========================================================================
-    // STEP 5: Create a rasterization stage
+    //                 STEP 17: Create a rasterization stage
     // ==========================================================================
     // Rasterization stage takes primitives and rasterizes them to fragments
     // pased to the fragment shader.
@@ -943,7 +927,7 @@ int main()
     rasterizer.depthBiasSlopeFactor = 0.0f;
 
     // ==========================================================================
-    // STEP 5: Create a MSAA state
+    //                      STEP 18: Create a MSAA state
     // ==========================================================================
     // MultiSample Anti-Aliasing is used to make edges smoother by rendering
     // them in higher resolution (having more then one fragment per pixel).
@@ -961,7 +945,7 @@ int main()
     multisampling.alphaToOneEnable = VK_FALSE;
 
     // ==========================================================================
-    // STEP 5: Configure depth and stensil tests
+    //               STEP 19: Configure depth and stensil tests
     // ==========================================================================
     // Depth and stensil attachment is created and now we need to configure
     // these tests. In this example we use regular VK_COMPARE_OP_LESS depth
@@ -981,7 +965,7 @@ int main()
     depthStencil.back = VkStencilOpState{};
 
     // ==========================================================================
-    // STEP 5: Create a pipeline color blend
+    //                 STEP 20: Create a color blend state
     // ==========================================================================
     // Color blend state describes how fragments are applied to the result
     // image. There might be options like mixing, but we switch off blending and
@@ -1014,7 +998,7 @@ int main()
     colorBlending.blendConstants[3] = 0.0f;
 
     // ==========================================================================
-    // STEP 5: Create a color attachment
+    //                   STEP 21: Create a color attachment
     // ==========================================================================
     // Color attachment contains bytes of rendered image, so we should create
     // one in order to display something.
@@ -1037,7 +1021,7 @@ int main()
     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     // ==========================================================================
-    // STEP 5: Create a depth and stensil attachment
+    //            STEP 22: Create a depth and stensil attachment
     // ==========================================================================
     // Depth and stensil attachment is used to support two tests:
     // - depth test - Makes sure that only the nearest fragment is displayed.
@@ -1064,7 +1048,7 @@ int main()
     depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     // ==========================================================================
-    // STEP 5: Create a render pass
+    //                     STEP 23: Create a render pass
     // ==========================================================================
     // Render pass represents a collection of attachments, subpasses
     // and dependencies between the subpasses.
@@ -1108,7 +1092,7 @@ int main()
     }
 
     // ==========================================================================
-    // STEP 5: Create a graphics pipeline
+    //                   STEP 24: Create a graphics pipeline
     // ==========================================================================
     // All stages prepared above should be combined into a graphics pipeline.
     // ==========================================================================
@@ -1155,7 +1139,7 @@ int main()
     }
 
     // ==========================================================================
-    // STEP 5: Create swap chain image views
+    //                 STEP 25: Create swap chain image views
     // ==========================================================================
     // After the swap chain is created, it contains Vulkan images that are
     // used to transfer rendered picture. In order to work with images
@@ -1196,7 +1180,7 @@ int main()
     }
 
     // ==========================================================================
-    // STEP 5: Create a depth buffer image
+    //                  STEP 26: Create a depth buffer image
     // ==========================================================================
     // In order to use a depth buffer, we should create an image.
     // Unlike swap buffer images, we need only one depth image and it should
@@ -1258,7 +1242,7 @@ int main()
     vkBindImageMemory(vkDevice, depthImage, depthImageMemory, 0);
 
     // ==========================================================================
-    // STEP 5: Create a depth buffer image view
+    //                STEP 27: Create a depth buffer image view
     // ==========================================================================
     // Similarly to swap buffer images, we need an image view to use it.
     // ==========================================================================
@@ -1283,7 +1267,7 @@ int main()
     }
 
     // ==========================================================================
-    // STEP 5: Create framebuffers
+    //                     STEP 28: Create framebuffers
     // ==========================================================================
     // Framebuffer refers to all attachments that are output of the rendering
     // process.
@@ -1318,7 +1302,7 @@ int main()
     }
 
     // ==========================================================================
-    // STEP 5: Create a vertex buffer
+    //                    STEP 29: Create a vertex buffer
     // ==========================================================================
     // Vertex buffer contains vertices of our model we want to pass
     // to the vertex shader.
@@ -1428,7 +1412,7 @@ int main()
     vkUnmapMemory(vkDevice, vertexBufferMemory);
 
     // ==========================================================================
-    // STEP 5: Create uniform buffers
+    //                      STEP 30: Create uniform buffers
     // ==========================================================================
     // Uniform buffer contains structures that are provided to shaders
     // as uniform variable. In our case this is a couple of matrices.
@@ -1503,7 +1487,7 @@ int main()
     }
 
     // ==========================================================================
-    // STEP 5: Create descriptopr sets
+    //                  STEP 31: Create descriptopr sets
     // ==========================================================================
     // In order to use uniforms, we should create a descriptor set for each
     // uniform buffer. Descriptors are allocated from the descriptor poll,
@@ -1572,7 +1556,7 @@ int main()
     }
 
     // ==========================================================================
-    // STEP 5: Create command buffers
+    //                    STEP 32: Create command buffers
     // ==========================================================================
     // Command buffers describe a set of rendering commands submitted to Vulkan.
     // We need to have one buffer per each image in the swap chain.
@@ -1661,7 +1645,7 @@ int main()
     }
 
     // ==========================================================================
-    // STEP 5: Synchronization primitives
+    //                   STEP 33: Synchronization primitives
     // ==========================================================================
     // Rendering and presentation are not synchronized. It means that if the
     // application renders frames faster then they are displayed, it will lead
@@ -1723,7 +1707,23 @@ int main()
     }
 
     // ==========================================================================
-    // STEP 5: Main loop
+    //                     STEP 34: Pick graphics queues
+    // ==========================================================================
+    // We have checked that the device supports all required queues, but now
+    // we need to pick their handles explicitly.
+    // ==========================================================================
+
+    // Pick a graphics queue.
+    VkQueue vkGraphicsQueue;
+    vkGetDeviceQueue(vkDevice, queueFamilyIndices.graphicsFamily.value(), 0, &vkGraphicsQueue);
+
+    // Pick a present queue.
+    // It might happen that both handles refer to the same queue.
+    VkQueue vkPresentQueue;
+    vkGetDeviceQueue(vkDevice, queueFamilyIndices.presentFamily.value(), 0, &vkPresentQueue);
+
+    // ==========================================================================
+    //                         STEP 35: Main loop
     // ==========================================================================
     // Main loop performs event hanlding and executes rendering.
     // ==========================================================================
@@ -1819,7 +1819,7 @@ int main()
     }
 
     // ==========================================================================
-    // STEP 5: Deinitialization
+    //                     STEP 36: Deinitialization
     // ==========================================================================
     // Destroy all created Vukan structures in a reverse order.
     // ==========================================================================
