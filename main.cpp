@@ -106,24 +106,6 @@ VKAPI_ATTR VkBool32 VKAPI_CALL messageCallback
     return VK_FALSE;
 }
 
-std::vector< char > readFile(const char* fileName) {
-    std::ifstream file(fileName, std::ios::ate | std::ios::binary);
-    if (!file.is_open()) {
-        std::cerr << "Shader file " << fileName << " not found!" << std::endl;
-        abort();
-    }
-
-    size_t fileSize = (size_t) file.tellg();
-    std::vector<char> buffer(fileSize);
-
-    file.seekg(0);
-    file.read(buffer.data(), fileSize);
-
-    file.close();
-
-    return buffer;
-}
-
 /**
  * Main function.
  * @return Return code of the application.
@@ -718,86 +700,58 @@ int main()
         }
     }
 
+    // ==========================================================================
+    // STEP 5: Load shaders
+    // ==========================================================================
+    // Shaders are special code that is executed directly on GPU.
+    // For our simple example we use vertex and fragment shaders.
+    // Unlike OpenGL, Vulcan uses a binary format which is called SPIR-V and
+    // each shader should be compiled to this format using glslc compiler that
+    // could be found in Vulkan SDK.
+    // ==========================================================================
 
-
-
-
-
-
-
-
-    auto vertexShaderFile = readFile("main.vert.spv");
-
-    VkShaderModuleCreateInfo vkVertexShaderCreateInfo{};
-    vkVertexShaderCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    vkVertexShaderCreateInfo.codeSize = vertexShaderFile.size();
-    vkVertexShaderCreateInfo.pCode = reinterpret_cast< const uint32_t* >(vertexShaderFile.data());
-
-    VkShaderModule vkVertexShaderModule;
-    if (vkCreateShaderModule(vkDevice, &vkVertexShaderCreateInfo, nullptr, &vkVertexShaderModule) != VK_SUCCESS) {
-        std::cerr << "Cannot create a vertex shader!";
-        abort();
-    }
-
-
-    auto fragmentShaderFile = readFile("main.frag.spv");
-    VkShaderModuleCreateInfo vkFragmentShaderCreateInfo{};
-    vkFragmentShaderCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    vkFragmentShaderCreateInfo.codeSize = fragmentShaderFile.size();
-    vkFragmentShaderCreateInfo.pCode = reinterpret_cast< const uint32_t* >(fragmentShaderFile.data());
-
-    VkShaderModule vkFragmentShaderModule;
-    if (vkCreateShaderModule(vkDevice, &vkFragmentShaderCreateInfo, nullptr, &vkFragmentShaderModule) != VK_SUCCESS) {
-        std::cerr << "Cannot create a vertex shader!";
-        abort();
-    }
-
-
-
-
-
-
-
-
-
-    VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
-    vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-
-    vertShaderStageInfo.module = vkVertexShaderModule;
-    vertShaderStageInfo.pName = "main"; // main function name
-
-
-    VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-    fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-    fragShaderStageInfo.module = vkFragmentShaderModule;
-    fragShaderStageInfo.pName = "main"; // main function name
-
-
-    VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    struct UniformBufferObject {
-        glm::mat4 model;
-        glm::mat4 view;
-        glm::mat4 proj;
+    // Create a helper function that loads a shader since we need two of them.
+    auto createShaderModule = [=](const char* fileName) {
+        // Open file.
+        std::ifstream file(fileName, std::ios::ate | std::ios::binary);
+        if (!file.is_open()) {
+            std::cerr << "Shader file " << fileName << " not found!" << std::endl;
+            abort();
+        }
+        // Calculate file size.
+        size_t fileSize = static_cast< size_t >(file.tellg());
+        // Jump to the beginning of the file.
+        file.seekg(0);
+        // Read shader code.
+        std::vector<char> buffer(fileSize);
+        file.read(buffer.data(), fileSize);
+        // Close the file.
+        file.close();
+        // Shader module creation info.
+        VkShaderModuleCreateInfo vkVertexShaderCreateInfo{};
+        vkVertexShaderCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        vkVertexShaderCreateInfo.codeSize = buffer.size();
+        vkVertexShaderCreateInfo.pCode = reinterpret_cast< const uint32_t* >(buffer.data());
+        // Create a shader module.
+        VkShaderModule vkVertexShaderModule;
+        if (vkCreateShaderModule(vkDevice, &vkVertexShaderCreateInfo, nullptr, &vkVertexShaderModule) != VK_SUCCESS) {
+            std::cerr << "Cannot create a vertex shader!";
+            abort();
+        }
+        // Return a shader module handle.
+        return vkVertexShaderModule;
     };
+
+    // Load two shaders for our simple example.
+    VkShaderModule vkVertexShaderModule = createShaderModule("main.vert.spv");
+    VkShaderModule vkFragmentShaderModule = createShaderModule("main.frag.spv");
+
+    // ==========================================================================
+    // STEP 5: Create a uniform buffer
+    // ==========================================================================
+    // Uniform buffers are used to provide variables to shaders.
+    // For example, in our case such variables are transformation matrices.
+    // ==========================================================================
 
     VkDescriptorSetLayoutBinding uboLayoutBinding{};
     uboLayoutBinding.binding = 0;
@@ -818,30 +772,26 @@ int main()
         abort();
     }
 
+    // ==========================================================================
+    // STEP 5: Create a vertex buffer
+    // ==========================================================================
+    // Vertex buffers provide vertices to shaders.
+    // In our case this is a geometry of a cube.
+    // ==========================================================================
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    struct Vertex {
+    // Structure that represents a vertex of a cube.
+    struct Vertex
+    {
+        // 3D coordinates of the vertex.
         glm::vec3 pos;
+        // Color of the vertex.
         glm::vec3 color;
     };
 
+    // Create a cube specifying its vertices.
+    // Each triplet of vertices represent one triangle.
+    // We do not use index buffer, so some vertices are duplicated.
+    // Each plane has its own color.
     std::vector< Vertex > vertices
     {
         { { -0.5f, -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
@@ -887,24 +837,29 @@ int main()
         { {  0.5f, -0.5f,  0.5f }, { 0.0f, 1.0f, 1.0f } },
     };
 
+    // Binding descriptor specifies how our array is splited into vertices.
+    // In particular, we say that each sizeof(Vertex) bytes correspond to one vertex.
     VkVertexInputBindingDescription bindingDescription{};
     bindingDescription.binding = 0;
     bindingDescription.stride = sizeof(Vertex);
     bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-    std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
-
+    // Attribute description specifies how one vertext is split into separate variables.
+    // In our case a vertext is a composition of two vec3 values: coordinates and color.
+    // Property location corresponds to a location value in shader code.
+    std::array< VkVertexInputAttributeDescription, 2 > attributeDescriptions{};
+    // Description of the first attribute (coordinates).
     attributeDescriptions[0].binding = 0;
     attributeDescriptions[0].location = 0;
     attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
     attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
+    // Description of the second attribute (color).
     attributeDescriptions[1].binding = 0;
     attributeDescriptions[1].location = 1;
     attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
     attributeDescriptions[1].offset = offsetof(Vertex, color);
 
-
+    // Create a vertex input state for pipeline creation.
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertexInputInfo.vertexBindingDescriptionCount = 1;
@@ -912,13 +867,28 @@ int main()
     vertexInputInfo.vertexAttributeDescriptionCount = static_cast< uint32_t >(attributeDescriptions.size());
     vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
+    // ==========================================================================
+    // STEP 5: Create a pipeline assembly state
+    // ==========================================================================
+    // Pipeline assembly state describes a geometry of the input data.
+    // In our case the input is a list of triangles.
+    // ==========================================================================
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     inputAssembly.primitiveRestartEnable = VK_FALSE;
 
+    // ==========================================================================
+    // STEP 5: Create a viewport and scissors
+    // ==========================================================================
+    // Viewport is a region of a framebuffer that will be used for renderring.
+    // Scissors define if some part of rendered image should be cut.
+    // In our example we define both viewport and scissors equal to
+    // the framebuffer size.
+    // ==========================================================================
 
+    // Create a viewport.
     VkViewport viewport{};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
@@ -927,13 +897,12 @@ int main()
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
-
+    // Create scissors.
     VkRect2D scissor{};
     scissor.offset = {0, 0};
     scissor.extent = vkSelectedExtent;
 
-
-
+    // Make a structure for framebuffer creation.
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     viewportState.viewportCount = 1;
@@ -941,22 +910,38 @@ int main()
     viewportState.scissorCount = 1;
     viewportState.pScissors = &scissor;
 
+    // ==========================================================================
+    // STEP 5: Create a rasterization stage
+    // ==========================================================================
+    // Rasterization stage takes primitives and rasterizes them to fragments
+    // pased to the fragment shader.
+    // ==========================================================================
 
-
+    // Rasterizer create info
     VkPipelineRasterizationStateCreateInfo rasterizer{};
     rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
     rasterizer.depthClampEnable = VK_FALSE;
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
+    // Fill in triangles.
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
+    // Enable face culling.
     rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
     rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
-
     rasterizer.depthBiasEnable = VK_FALSE;
     rasterizer.depthBiasConstantFactor = 0.0f;
     rasterizer.depthBiasClamp = 0.0f;
     rasterizer.depthBiasSlopeFactor = 0.0f;
 
+    // ==========================================================================
+    // STEP 5: Create a MSAA state
+    // ==========================================================================
+    // MultiSample Anti-Aliasing is used to make edges smoother by rendering
+    // them in higher resolution (having more then one fragment per pixel).
+    // In our example we do not use this feature.
+    // ==========================================================================
+
+    // Create a state for MSAA.
     VkPipelineMultisampleStateCreateInfo multisampling{};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisampling.sampleShadingEnable = VK_FALSE;
@@ -966,9 +951,19 @@ int main()
     multisampling.alphaToCoverageEnable = VK_FALSE;
     multisampling.alphaToOneEnable = VK_FALSE;
 
+    // ==========================================================================
+    // STEP 5: Create a pipeline color blend
+    // ==========================================================================
+    // Color blend state describes how fragments are applied to the result
+    // image. There might be options like mixing, but we switch off blending and
+    // simply put a new color instead of existing one.
+    // ==========================================================================
+
+    // Configuration per attached framebuffer.
     VkPipelineColorBlendAttachmentState colorBlendAttachment{};
     colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     colorBlendAttachment.blendEnable = VK_FALSE;
+    // Other fields are optional.
     colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
     colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
     colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
@@ -976,13 +971,14 @@ int main()
     colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
     colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
-
+    // Global color blending settings.
     VkPipelineColorBlendStateCreateInfo colorBlending{};
     colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-    colorBlending.logicOpEnable = VK_FALSE;
-    colorBlending.logicOp = VK_LOGIC_OP_COPY;
     colorBlending.attachmentCount = 1;
     colorBlending.pAttachments = &colorBlendAttachment;
+    colorBlending.logicOpEnable = VK_FALSE;
+    // Other fields are optional.
+    colorBlending.logicOp = VK_LOGIC_OP_COPY;
     colorBlending.blendConstants[0] = 0.0f;
     colorBlending.blendConstants[1] = 0.0f;
     colorBlending.blendConstants[2] = 0.0f;
@@ -1145,6 +1141,31 @@ int main()
     depthStencil.back = VkStencilOpState{};
 
 
+
+
+
+
+
+
+
+
+    VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+    vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+
+    vertShaderStageInfo.module = vkVertexShaderModule;
+    vertShaderStageInfo.pName = "main"; // main function name
+
+
+    VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+    fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    fragShaderStageInfo.module = vkFragmentShaderModule;
+    fragShaderStageInfo.pName = "main"; // main function name
+
+
+    VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
 
 
 
@@ -1374,6 +1395,13 @@ int main()
 
 
 
+
+    // Structure that we want to provide to the vertext shader.
+    struct UniformBufferObject {
+        glm::mat4 model;
+        glm::mat4 view;
+        glm::mat4 proj;
+    };
 
 
 
@@ -1732,6 +1760,8 @@ int main()
 
     vkDestroyDevice(vkDevice, nullptr);
 
+#ifdef DEBUG_MODE
+
     // Get pointer to an extension function vkDestroyDebugUtilsMessengerEXT.
     auto vkDestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(vkInstance, "vkDestroyDebugUtilsMessengerEXT");
     if (vkCreateDebugUtilsMessengerEXT == nullptr) {
@@ -1741,6 +1771,8 @@ int main()
 
     // Destory debug messenger.
     vkDestroyDebugUtilsMessengerEXT(vkInstance, vkDebugMessenger, nullptr);
+
+#endif
 
     vkDestroySurfaceKHR(vkInstance, vkSurface, nullptr);
 
