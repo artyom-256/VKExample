@@ -20,10 +20,10 @@
   cd VKExample
   mkdir build
   cd build
-  cmake .. -DGLFW_INC=C:/Lib/glfw-3.3.2/include\
-           -DGLFW_LIB=C:/Lib/glfw-3.3.2/lib\
-           -DGLM_INC=C:/Lib/glm-0.9.9.8/include\
-           -DVK_SDK_INC=C:/Lib/VulkanSDK_1.2.141.0/Include\
+  cmake .. -DGLFW_INC=C:/Lib/glfw-3.3.2/include \
+           -DGLFW_LIB=C:/Lib/glfw-3.3.2/lib \
+           -DGLM_INC=C:/Lib/glm-0.9.9.8/include \
+           -DVK_SDK_INC=C:/Lib/VulkanSDK_1.2.141.0/Include \
            -DVK_SDK_LIB=C:/Lib/VulkanSDK_1.2.141.0/Lib32
   make -j4
   ``` 
