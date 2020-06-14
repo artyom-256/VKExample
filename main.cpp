@@ -2023,7 +2023,7 @@ int main()
 
     // Get pointer to an extension function vkDestroyDebugUtilsMessengerEXT.
     auto vkDestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(vkInstance, "vkDestroyDebugUtilsMessengerEXT");
-    if (vkCreateDebugUtilsMessengerEXT == nullptr) {
+    if (vkDestroyDebugUtilsMessengerEXT == nullptr) {
         std::cerr << "Function vkDestroyDebugUtilsMessengerEXT not found!";
         abort();
     }
