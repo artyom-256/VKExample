@@ -27,7 +27,15 @@
            -DVK_SDK_LIB=C:/Lib/VulkanSDK_1.2.141.0/Lib32
   make -j4
   ``` 
-  
+
+### Using validation layers
+In order to run the application you have to enable validation layers according to https://vulkan.lunarg.com/doc/view/1.1.121.1/linux/layer_configuration.html
+For example for Windows you should set the following environment variables:
+  ```bash
+  set VK_LAYER_PATH=C:\Lib\VulkanSDK_1.2.141.0\Bin
+  set VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation
+  ```
+
 ### Note
 - Mentioned versions of GCC and libraries are not strict requirements. This is what I used to compile the application. If other versions work for you - feel free to use them.
 
