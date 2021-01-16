@@ -187,7 +187,7 @@ int main()
     for (auto requestedLayer : desiredValidationLayers) {
         bool isLayerAvailable = false;
         for (auto availableLayer : vkAvailableLayers) {
-            if (std::strcmp(requestedLayer, availableLayer.layerName)) {
+            if (std::strcmp(requestedLayer, availableLayer.layerName) == 0) {
                 isLayerAvailable = true;
                 break;
             }
