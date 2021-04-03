@@ -5,6 +5,7 @@ SET(GLFW_LIB "" CACHE STRING "Path to glfw lib directory")
 SET(GLM_INC "" CACHE STRING "Path to glm include directory")
 SET(VK_SDK_INC "" CACHE STRING "Path to LunarG Vulkan SDK include directory")
 SET(VK_SDK_LIB "" CACHE STRING "Path to LunarG Vulkan SDK lib directory")
+SET(DEBUG_MODE "" CACHE BOOL "Enable or disable debug messages")
 
 # Prepare project build
 project(VKExample)
@@ -16,6 +17,11 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
 include_directories(${GLFW_INC})
 include_directories(${GLM_INC})
 include_directories(${VK_SDK_INC})
+
+if(${DEBUG_MODE})
+    message("Debug mode ON")
+    add_definitions(-DDEBUG_MODE)
+endif()
 
 target_link_libraries(
     ${PROJECT_NAME}

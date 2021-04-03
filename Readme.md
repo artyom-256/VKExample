@@ -29,6 +29,7 @@
   ``` 
 
 ### Using validation layers
+If you want to enable debug messages, compile the project with -DDEBUG_MODE.
 In order to run the application you have to enable validation layers according to https://vulkan.lunarg.com/doc/view/1.1.121.1/linux/layer_configuration.html
 For example for Windows you should set the following environment variables:
   ```bash

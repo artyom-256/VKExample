@@ -62,15 +62,6 @@
 #include <algorithm>
 
 /**
- * Switch on validation levels.
- * Validation levels provided by LunarG display error messages in case of
- * incorrect usage of Vulkan functions.
- * Comment this line to switching off DEBUG_MODE.
- * It makes the application faster but silent.
- */
-#define DEBUG_MODE
-
-/**
  * Window width.
  */
 constexpr int WINDOW_WIDTH = 800;
@@ -566,7 +557,7 @@ int main()
 
 #else
 
-    createInfo.enabledLayerCount = 0;
+    vkDeviceCreateInfo.enabledLayerCount = 0;
 
 #endif
 
