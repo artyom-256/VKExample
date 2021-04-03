@@ -12,8 +12,7 @@
   - **GLFW_INC** - path to GLFW include directory
   - **GLFW_LIB** - path to GLFW lib directory
   - **GLM_INC** - path to GLM include directory
-  - **VK_SDK_INC** - path to LunarG Vulkan SDK include directory
-  - **VK_SDK_LIB** - path to LunarG Vulkan SDK lib directory
+  - **VK_SDK** - path to LunarG Vulkan SDK directory
 - Clone repo and build it using cmake & make
   ```bash
   git clone https://github.com/artyom-256/VKExample.git
@@ -23,8 +22,7 @@
   cmake .. -DGLFW_INC=C:/Lib/glfw-3.3.2/include \
            -DGLFW_LIB=C:/Lib/glfw-3.3.2/lib \
            -DGLM_INC=C:/Lib/glm-0.9.9.8/include \
-           -DVK_SDK_INC=C:/Lib/VulkanSDK_1.2.141.0/Include \
-           -DVK_SDK_LIB=C:/Lib/VulkanSDK_1.2.141.0/Lib32
+           -DVK_SDK=C:/Lib/VulkanSDK_1.2.141.0
   make -j4
   ``` 
 
