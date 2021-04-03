@@ -1,4 +1,4 @@
-# VKExampleRTX
+# VKExample
 
 The application demonstrates usage of Vulkan API in order to create a simple 3D cube. The code is written to demonstrate an exact sequence of actions you have to perform in order to run a 3D application using Vulkan, so no homemade frameworks, just a single big main function. Some code duplication was intentionally left to make the sequence simple.
 
