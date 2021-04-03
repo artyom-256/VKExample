@@ -687,7 +687,7 @@ int main()
     }
 
     // ==========================================================================
-    //                 STEP 26: Create swap chain image views
+    //                 STEP 12: Create swap chain image views
     // ==========================================================================
     // After the swap chain is created, it contains Vulkan images that are
     // used to transfer rendered picture. In order to work with images
@@ -728,7 +728,7 @@ int main()
     }
 
     // ==========================================================================
-    //               STEP 12: Create a descriptor set layout
+    //               STEP 13: Create a descriptor set layout
     // ==========================================================================
     // Descriptor set layout describes a layout for uniform variables.
     // The pipeline is create taking into account the layout and after it is
@@ -759,7 +759,7 @@ int main()
     }
 
     // ==========================================================================
-    //                      STEP 31: Create uniform buffers
+    //                      STEP 14: Create uniform buffers
     // ==========================================================================
     // Uniform buffer contains a structure that is provided to shaders
     // as a uniform variable. In our case this is a couple of matrices.
@@ -834,7 +834,7 @@ int main()
     }
 
     // ==========================================================================
-    //                  STEP 32: Write descriptopr sets
+    //                  STEP 15: Write descriptopr sets
     // ==========================================================================
     // For each unifrom buffer we have to create a descriptor set and submit
     // the buffer data to it. Descriptor sets are created by the descriptor pool.
@@ -902,7 +902,7 @@ int main()
     }
 
     // ==========================================================================
-    //                        STEP 13: Load shaders
+    //                        STEP 16: Load shaders
     // ==========================================================================
     // Shaders are special code that is executed directly on GPU.
     // For our simple example we use vertex and fragment shaders.
@@ -998,7 +998,7 @@ int main()
     };
 
     // ==========================================================================
-    //                    STEP 14: Describe a vertex buffer
+    //                    STEP 17: Describe a vertex buffer
     // ==========================================================================
     // Vertex buffers provide vertices to shaders. In our case this is a geometry
     // of a cube. First of all we have to describe the buffer pointint out to
@@ -1045,7 +1045,7 @@ int main()
     vkVertexInputInfo.pVertexAttributeDescriptions = vkAttributeDescriptions.data();
 
     // ==========================================================================
-    //                    STEP 30: Create a vertex buffer
+    //                    STEP 18: Create a vertex buffer
     // ==========================================================================
     // Vertex buffer contains vertices of our model we want to pass
     // to the vertex shader.
@@ -1155,7 +1155,7 @@ int main()
     vkUnmapMemory(vkDevice, vkVertexBufferMemory);
 
     // ==========================================================================
-    //               STEP 15: Create a pipeline assembly state
+    //               STEP 19: Create a pipeline assembly state
     // ==========================================================================
     // Pipeline assembly state describes a geometry of the input data.
     // In our case the input is a list of triangles.
@@ -1167,7 +1167,7 @@ int main()
     vkInputAssembly.primitiveRestartEnable = VK_FALSE;
 
     // ==========================================================================
-    //                 STEP 16: Create a viewport and scissors
+    //                 STEP 20: Create a viewport and scissors
     // ==========================================================================
     // Viewport is a region of a framebuffer that will be used for renderring.
     // Scissors define if some part of rendered image should be cut.
@@ -1198,7 +1198,7 @@ int main()
     vkViewportState.pScissors = &vkScissor;
 
     // ==========================================================================
-    //                 STEP 17: Create a rasterization stage
+    //                 STEP 21: Create a rasterization stage
     // ==========================================================================
     // Rasterization stage takes primitives and rasterizes them to fragments
     // pased to the fragment shader.
@@ -1221,7 +1221,7 @@ int main()
     vkRasterizer.depthBiasSlopeFactor = 0.0f;
 
     // ==========================================================================
-    //                     STEP 18: Create an MSAA state
+    //                     STEP 22: Create an MSAA state
     // ==========================================================================
     // MultiSample Anti-Aliasing is used to make edges smoother by rendering
     // them in higher resolution (having more then one fragment per pixel) and
@@ -1260,7 +1260,7 @@ int main()
     vkMultisampling.alphaToOneEnable = VK_FALSE;
 
     // ==========================================================================
-    //                  STEP 19: Create a resolve attachment
+    //                  STEP 23: Create a resolve attachment
     // ==========================================================================
     // In order to implement MSAA we should introduce a so-called
     // resolve attachment. The attachment has only 1 sample and while rendering
@@ -1358,7 +1358,7 @@ int main()
     colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     // ==========================================================================
-    //                 STEP 21: Create a color blend state
+    //                 STEP 24: Create a color blend state
     // ==========================================================================
     // Color blend state describes how fragments are applied to the result
     // image. There might be options like mixing, but we switch off blending and
@@ -1391,7 +1391,7 @@ int main()
     vkColorBlending.blendConstants[3] = 0.0f;
 
     // ==========================================================================
-    //                   STEP 22: Create a color attachment
+    //                   STEP 25: Create a color attachment
     // ==========================================================================
     // Color attachment contains pixels of rendered image, so we should create
     // one in order to display something.
@@ -1416,7 +1416,7 @@ int main()
     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     // ==========================================================================
-    //                  STEP 27: Create a depth buffer image
+    //                  STEP 26: Create a depth buffer image
     // ==========================================================================
     // In order to use a depth buffer, we should create an image.
     // Unlike swap buffer images, we need only one depth image and it should
@@ -1478,7 +1478,7 @@ int main()
     vkBindImageMemory(vkDevice, vkDepthImage, vkDepthImageMemory, 0);
 
     // ==========================================================================
-    //                STEP 28: Create a depth buffer image view
+    //                STEP 27: Create a depth buffer image view
     // ==========================================================================
     // Similarly to swap buffer images, we need an image view to use it.
     // ==========================================================================
@@ -1503,7 +1503,7 @@ int main()
     }
 
     // ==========================================================================
-    //            STEP 23: Create a depth and stensil attachment
+    //            STEP 28: Create a depth and stensil attachment
     // ==========================================================================
     // Depth and stensil attachment is used to support two tests:
     // - depth test - Makes sure that only the nearest fragment is displayed.
@@ -1530,7 +1530,7 @@ int main()
     vkDepthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     // ==========================================================================
-    //               STEP 20: Configure depth and stensil tests
+    //               STEP 29: Configure depth and stensil tests
     // ==========================================================================
     // This stage configures behavior of depth and stensil tests. In this example
     // we use regular VK_COMPARE_OP_LESS depth operation and disable stensil test.
@@ -1550,7 +1550,7 @@ int main()
 
 
     // ==========================================================================
-    //                     STEP 24: Create a render pass
+    //                     STEP 30: Create a render pass
     // ==========================================================================
     // Render pass represents a collection of attachments, subpasses
     // and dependencies between the subpasses.
@@ -1595,7 +1595,7 @@ int main()
     }
 
     // ==========================================================================
-    //                   STEP 25: Create a graphics pipeline
+    //                   STEP 31: Create a graphics pipeline
     // ==========================================================================
     // All stages prepared above should be combined into a graphics pipeline.
     // ==========================================================================
@@ -1642,7 +1642,7 @@ int main()
     }
 
     // ==========================================================================
-    //                     STEP 29: Create framebuffers
+    //                     STEP 32: Create framebuffers
     // ==========================================================================
     // Framebuffer refers to all attachments that are output of the rendering
     // process.
